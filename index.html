@@ -29,7 +29,7 @@
       </div>
 
       <!-- Navigation Onglets -->
-      <nav class="flex bg-indigo-800/80 p-1 rounded-xl text-xs font-semibold gap-1 flex-wrap justify-center">
+      <nav class="flex bg-indigo-800/80 p-1 rounded-xl text-xs font-semibold gap-1 flex-wrap justify-center z-50">
         <button id="tabNavPresence" onclick="switchTab('presence')" class="px-3 py-2 rounded-lg transition bg-white text-indigo-800 shadow cursor-pointer">
           <i class="fa-solid fa-users-gear mr-1.5"></i>Présence
         </button>
@@ -60,7 +60,7 @@
         <div class="flex items-center gap-2">
           <i class="fa-solid fa-calendar-check text-indigo-600 text-base"></i>
           <span class="font-bold text-slate-700">Semaine :</span>
-          <select id="weekSelect" onchange="fetchDataFromSupabase()" class="bg-indigo-50 border border-indigo-200 rounded px-3 py-1 font-bold text-indigo-900 focus:outline-none">
+          <select id="weekSelect" onchange="fetchDataFromSupabase()" class="bg-indigo-50 border border-indigo-200 rounded px-3 py-1 font-bold text-indigo-900 focus:outline-none cursor-pointer">
             <option value="S40">Semaine S40</option>
           </select>
         </div>
@@ -68,7 +68,7 @@
         <div class="flex items-center gap-2">
           <i class="fa-solid fa-calendar-week text-slate-500 text-base"></i>
           <span>Jour :</span>
-          <select id="daySelect" class="bg-slate-100 border border-slate-300 rounded px-2 py-1 font-semibold text-slate-800 focus:outline-none">
+          <select id="daySelect" class="bg-slate-100 border border-slate-300 rounded px-2 py-1 font-semibold text-slate-800 focus:outline-none cursor-pointer">
             <option value="all">Tous les jours de la semaine</option>
           </select>
         </div>
@@ -76,7 +76,7 @@
 
       <div class="flex items-center gap-3">
         <span id="dbStatusBadge" class="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-md font-bold flex items-center gap-1.5">
-          <span id="dbDot" class="w-2 h-2 rounded-full bg-amber-500"></span><span id="dbStatusText">Chargement...</span>
+          <span id="dbDot" class="w-2 h-2 rounded-full bg-amber-500"></span><span id="dbStatusText">Initialisation...</span>
         </span>
       </div>
     </section>
@@ -348,7 +348,7 @@
           </div>
 
           <div>
-            <select id="couvertureQueueSelect" class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-indigo-500">
+            <select id="couvertureQueueSelect" class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-indigo-500 cursor-pointer">
               <option value="TEL BAQ">TEL BAQ (Appels)</option>
               <option value="CHAT BAQ FR">CHAT BAQ (Chat)</option>
             </select>
@@ -401,7 +401,7 @@
         <i class="fa-solid fa-cloud-arrow-up text-2xl text-amber-600"></i>
         <div>
           <h3 class="font-bold">Espace Administrateur & Synchronisation Supabase</h3>
-          <p class="text-xs text-amber-700">Les fichiers importés ici sont automatiquement enregistrés dans Supabase et visibles par tout le monde.</p>
+          <p class="text-xs text-amber-700">Les fichiers importés ici sont enregistrés dans Supabase et synchronisés en temps réel.</p>
         </div>
       </div>
 
@@ -409,7 +409,7 @@
       <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
         <h2 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
           <i class="fa-solid fa-file-excel text-indigo-600"></i>
-          1. Importation du fichier Excel vers la Base de Données
+          1. Importation du fichier Excel (Planning & Prévisions)
         </h2>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -423,14 +423,14 @@
               <input type="file" id="fileInputAdmin" accept=".xlsx, .xls, .csv" class="hidden" />
               <i class="fa-solid fa-cloud-arrow-up text-3xl text-indigo-500 mb-2"></i>
               <span class="font-semibold text-indigo-900 text-sm">Sélectionner ou glisser le fichier Excel</span>
-              <span class="text-xs text-slate-500 mt-1">Sera enregistré sur Supabase</span>
+              <span class="text-xs text-slate-500 mt-1">Ex: TDB Planning S40.xlsx</span>
             </label>
           </div>
 
           <div class="flex flex-col justify-center space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-            <span class="font-bold text-xs text-slate-700 uppercase">Statut Supabase :</span>
+            <span class="font-bold text-xs text-slate-700 uppercase">Données en mémoire :</span>
             <div class="text-xs space-y-1 text-slate-600">
-              <div>• Agents chargés en base : <span id="adminCountAgents" class="font-bold text-indigo-700">0</span></div>
+              <div>• Agents chargés : <span id="adminCountAgents" class="font-bold text-indigo-700">0</span></div>
               <div>• Prévisions TEL BAQ : <span id="adminCountTel" class="font-bold text-indigo-700">0</span> créneaux</div>
               <div>• Prévisions CHAT BAQ : <span id="adminCountChat" class="font-bold text-indigo-700">0</span> créneaux</div>
             </div>
@@ -535,17 +535,17 @@
   </main>
 
   <script>
-    // CONFIGURATION ET INITIALISATION SUPABASE
+    // CONFIGURATION SUPABASE SECURISEE
     const SUPABASE_URL = 'https://vysarmqjgfnnpetoozbw.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_xwzHkjtP1X-70XT5otBASw_x3sHsYQ8';
     let supabase = null;
 
     try {
-      if (window.supabase) {
+      if (window.supabase && typeof window.supabase.createClient === 'function') {
         supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       }
     } catch(err) {
-      console.warn("Supabase init info:", err);
+      console.warn("Supabase initialisation isolée :", err);
     }
 
     let rawAgentsData = [];
@@ -560,38 +560,7 @@
 
     const daysList = ['Lundi 28/09', 'Mardi 29/09', 'Mercredi 30/09', 'Jeudi 01/10', 'Vendredi 02/10', 'Samedi 03/10', 'Dimanche 04/10'];
 
-    const fileInput = document.getElementById('fileInputAdmin');
-    const dropZone = document.getElementById('dropZoneAdmin');
-    const daySelect = document.getElementById('daySelect');
-    const weekSelect = document.getElementById('weekSelect');
-    const couvertureQueueSelect = document.getElementById('couvertureQueueSelect');
-
-    if (dropZone && fileInput) {
-      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eName => {
-        dropZone.addEventListener(eName, (e) => { e.preventDefault(); e.stopPropagation(); }, false);
-      });
-      dropZone.addEventListener('drop', (e) => {
-        if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
-      });
-      fileInput.addEventListener('change', (e) => {
-        if (e.target.files.length) handleFile(e.target.files[0]);
-      });
-    }
-
-    if (daySelect) daySelect.addEventListener('change', updateUI);
-    if (weekSelect) weekSelect.addEventListener('change', updateUI);
-    if (couvertureQueueSelect) couvertureQueueSelect.addEventListener('change', updateUI);
-
-    ['adminTelAHT', 'adminTelShrinkage', 'adminTelTargetQS', 'adminTelDeductionToggle',
-     'adminChatConcurrency', 'adminChatAHT', 'adminChatShrinkage', 'adminChatTargetQS'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) {
-        el.addEventListener('input', updateUI);
-        el.addEventListener('change', updateUI);
-      }
-    });
-
-    // NAVIGATION
+    // NAVIGATION SANS BLOCAGE
     function switchTab(tabName) {
       const pages = ['pagePresence', 'pageTel', 'pageChat', 'pageReporting', 'pageCouverture', 'pageAdmin'];
       const btns = ['tabNavPresence', 'tabNavTel', 'tabNavChat', 'tabNavReporting', 'tabNavCouverture', 'tabNavAdmin'];
@@ -655,26 +624,29 @@
       return null;
     }
 
-    // CHARGEMENT ET ENREGISTREMENT SUPABASE
+    // SUPABASE DATA FETCHING
     async function fetchDataFromSupabase() {
-      const selectedWeek = weekSelect ? weekSelect.value : 'S40';
       const statusBadge = document.getElementById('dbStatusText');
-      if (statusBadge) statusBadge.textContent = "Synchronisation...";
-
+      const dot = document.getElementById('dbDot');
+      
       if (!supabase) {
-        if (statusBadge) statusBadge.textContent = "Mode Local (Supabase non prêt)";
+        if (statusBadge) statusBadge.textContent = "Prêt (Mode Fichier Local)";
+        if (dot) dot.className = "w-2 h-2 rounded-full bg-slate-400";
         return;
       }
 
+      const weekSelect = document.getElementById('weekSelect');
+      const selectedWeek = weekSelect ? weekSelect.value : 'S40';
+
       try {
-        // Fetch Agents
-        const { data: agentsData, error: errAgents } = await supabase
+        if (statusBadge) statusBadge.textContent = "Chargement Supabase...";
+
+        const { data: agentsData } = await supabase
           .from('planning_agents')
           .select('*')
           .eq('semaine', selectedWeek);
 
-        // Fetch Forecasts
-        const { data: forecastData, error: errForecast } = await supabase
+        const { data: forecastData } = await supabase
           .from('previsions_volumes')
           .select('*')
           .eq('semaine', selectedWeek);
@@ -700,13 +672,12 @@
           });
         }
 
-        const dot = document.getElementById('dbDot');
         if (dot) dot.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
-        if (statusBadge) statusBadge.textContent = "Supabase Synchro (" + selectedWeek + ")";
+        if (statusBadge) statusBadge.textContent = "Supabase (" + selectedWeek + ")";
         updateUI();
       } catch (err) {
-        console.error("Supabase Sync error:", err);
-        if (statusBadge) statusBadge.textContent = "Prêt (Local)";
+        console.warn("Supabase fetch warning:", err);
+        if (statusBadge) statusBadge.textContent = "Mode Local (Prêt)";
       }
     }
 
@@ -729,23 +700,25 @@
 
           const currentWeek = document.getElementById('adminWeekInput')?.value || 'S40';
 
-          // Sauvegarde vers Supabase si disponible
           if (supabase) {
-            const statusBadge = document.getElementById('dbStatusText');
-            if (statusBadge) statusBadge.textContent = "Envoi vers Supabase...";
+            try {
+              const agentsToInsert = rawAgentsData.map(a => ({
+                semaine: currentWeek,
+                code_agent: a.code,
+                nom_prenom: a.name,
+                activite: a.activity,
+                schedules: a.schedules
+              }));
 
-            const agentsToInsert = rawAgentsData.map(a => ({
-              semaine: currentWeek,
-              code_agent: a.code,
-              nom_prenom: a.name,
-              activite: a.activity,
-              schedules: a.schedules
-            }));
-
-            await supabase.from('planning_agents').delete().eq('semaine', currentWeek);
-            await supabase.from('planning_agents').insert(agentsToInsert);
-
-            alert(`La semaine ${currentWeek} a été enregistrée avec succès sur Supabase pour TOUT LE MONDE !`);
+              await supabase.from('planning_agents').delete().eq('semaine', currentWeek);
+              await supabase.from('planning_agents').insert(agentsToInsert);
+              alert(`Fichier importé et enregistré sur Supabase pour la semaine ${currentWeek} !`);
+            } catch(sErr) {
+              console.warn("Erreur sauvegarde Supabase:", sErr);
+              alert("Données chargées localement dans le navigateur !");
+            }
+          } else {
+            alert("Données chargées en mémoire vive localement !");
           }
 
           updateUI();
@@ -792,6 +765,7 @@
         rawAgentsData.push(agent);
       }
 
+      const daySelect = document.getElementById('daySelect');
       if (daySelect) {
         daySelect.innerHTML = '<option value="all">Tous les jours de la semaine</option>';
         daysMapping.forEach(d => {
@@ -836,6 +810,7 @@
     }
 
     function computePresence(targetDay = null) {
+      const daySelect = document.getElementById('daySelect');
       const selectedDay = targetDay || (daySelect ? daySelect.value : 'all');
       const slots = Array.from({ length: 24 }, (_, i) => ({
         hour: i,
@@ -1034,7 +1009,6 @@
         });
       }
 
-      // Chart
       const canvas = document.getElementById(chartCanvasId);
       if (canvas) {
         const ctx = canvas.getContext('2d');
@@ -1076,7 +1050,6 @@
         else telChartInstance = newChart;
       }
 
-      // Table
       const tbody = document.getElementById(tableBodyId);
       if (!tbody) return;
       tbody.innerHTML = '';
@@ -1118,7 +1091,6 @@
       const hourlyQsChat = [];
 
       for (let h = 0; h < 24; h++) {
-        // TEL
         const volTelList = rawForecastData['TEL BAQ'] && rawForecastData['TEL BAQ'][h] ? rawForecastData['TEL BAQ'][h] : [0];
         const avgTelVol = Math.round(volTelList.reduce((a, b) => a + b, 0) / Math.max(1, volTelList.length));
         let netTel = slots[h].activeTel.length;
@@ -1129,7 +1101,6 @@
         volTelTreated += capTel.treated;
         hourlyQsTel.push(capTel.qs);
 
-        // CHAT
         const volChatList = rawForecastData['CHAT BAQ FR'] && rawForecastData['CHAT BAQ FR'][h] ? rawForecastData['CHAT BAQ FR'][h] : [0];
         const avgChatVol = Math.round(volChatList.reduce((a, b) => a + b, 0) / Math.max(1, volChatList.length));
         let netChat = slots[h].activeChat.length;
@@ -1139,7 +1110,6 @@
         volChatTreated += capChat.treated;
         hourlyQsChat.push(capChat.qs);
 
-        // Hours
         totalNetHours += (slots[h].activeTel.length + slots[h].activeChat.length);
       }
 
@@ -1157,7 +1127,6 @@
       if (document.getElementById('repTotalHours')) document.getElementById('repTotalHours').textContent = totalNetHours + ' h';
       if (document.getElementById('repEtpAvg')) document.getElementById('repEtpAvg').textContent = (totalNetHours / 24).toFixed(1);
 
-      // Reporting Pie Chart
       const pieCanvas = document.getElementById('reportingPieChart');
       if (pieCanvas) {
         const pieCtx = pieCanvas.getContext('2d');
@@ -1176,7 +1145,6 @@
         });
       }
 
-      // Reporting Line Chart
       const lineCanvas = document.getElementById('reportingLineChart');
       if (lineCanvas) {
         const lineCtx = lineCanvas.getContext('2d');
@@ -1195,7 +1163,6 @@
         });
       }
 
-      // Reporting Weekly Table
       const tbody = document.getElementById('reportingTableBody');
       if (!tbody) return;
       tbody.innerHTML = '';
@@ -1294,7 +1261,6 @@
       if (document.getElementById('covTotalPlannedHours')) document.getElementById('covTotalPlannedHours').textContent = totalPlannedHours.toFixed(1) + ' h';
       if (document.getElementById('covGlobalRate')) document.getElementById('covGlobalRate').textContent = globalRate.toFixed(1) + ' %';
 
-      // Chart
       const canvas = document.getElementById('couvertureChart');
       if (canvas) {
         const ctx = canvas.getContext('2d');
@@ -1332,7 +1298,6 @@
         });
       }
 
-      // Table
       const tbody = document.getElementById('couvertureTableBody');
       if (!tbody) return;
       tbody.innerHTML = '';
@@ -1423,7 +1388,7 @@
       updateUI();
     }
 
-    // Initialisation
+    // INITIALISATION
     window.addEventListener('DOMContentLoaded', () => {
       fetchDataFromSupabase();
     });
