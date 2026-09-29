@@ -59,7 +59,7 @@
           <i class="fa-solid fa-calendar-check text-indigo-600 text-base"></i>
           <span class="font-bold text-slate-700">Semaine :</span>
           <select id="weekSelect" onchange="changeWeek(this.value)" class="bg-indigo-50 border border-indigo-200 rounded px-3 py-1 font-bold text-indigo-900 focus:outline-none cursor-pointer">
-            <option value="S40">Semaine S40 (Initiale)</option>
+            <option value="S40">Semaine S40</option>
           </select>
         </div>
 
@@ -74,7 +74,7 @@
 
       <div class="flex items-center gap-3">
         <span id="dataStatusBadge" class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-md font-bold flex items-center gap-1.5">
-          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>Données S40 Chargées
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>Prêt pour Importation
         </span>
       </div>
     </section>
@@ -399,7 +399,7 @@
         <i class="fa-solid fa-cloud-arrow-up text-2xl text-amber-600"></i>
         <div>
           <h3 class="font-bold">Espace Administrateur & Alimentation Hebdomadaire</h3>
-          <p class="text-xs text-amber-700">Importez chaque nouvelle semaine sans perdre les données des semaines précédentes.</p>
+          <p class="text-xs text-amber-700">Importez le fichier Excel de n'importe quelle semaine pour charger 100% des agents.</p>
         </div>
       </div>
 
@@ -407,28 +407,28 @@
       <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
         <h2 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
           <i class="fa-solid fa-file-excel text-indigo-600"></i>
-          1. Importation du fichier Excel pour une Nouvelle Semaine
+          1. Importation du fichier Excel (Planning & Prévisions)
         </h2>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div class="space-y-3">
             <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1">Nom / Code de la Semaine à créer ou mettre à jour :</label>
-              <input type="text" id="adminWeekInput" value="S41" placeholder="Ex: S41" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold text-indigo-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Nom / Code de la Semaine :</label>
+              <input type="text" id="adminWeekInput" value="S40" placeholder="Ex: S40" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold text-indigo-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
             </div>
 
             <label id="dropZoneAdmin" class="flex flex-col items-center justify-center border-2 border-dashed border-indigo-300 hover:border-indigo-500 bg-indigo-50/50 hover:bg-indigo-50 rounded-xl p-6 transition cursor-pointer text-center group">
               <input type="file" id="fileInputAdmin" accept=".xlsx, .xls, .csv" class="hidden" />
               <i class="fa-solid fa-cloud-arrow-up text-3xl text-indigo-500 mb-2"></i>
-              <span class="font-semibold text-indigo-900 text-sm">Sélectionner ou glisser le fichier Excel de la semaine</span>
-              <span class="text-xs text-slate-500 mt-1">S'ajoute à la liste des semaines analysables</span>
+              <span class="font-semibold text-indigo-900 text-sm">Glisser-déposer votre fichier Excel ici</span>
+              <span class="text-xs text-slate-500 mt-1">Accepte TDB Planning S40.xlsx</span>
             </label>
           </div>
 
           <div class="flex flex-col justify-center space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
             <span class="font-bold text-xs text-slate-700 uppercase">Aperçu Semaine Active :</span>
             <div class="text-xs space-y-1 text-slate-600">
-              <div>• Agents actuellement chargés : <span id="adminCountAgents" class="font-bold text-indigo-700">0</span></div>
+              <div>• Agents chargés : <span id="adminCountAgents" class="font-bold text-indigo-700">0</span></div>
               <div>• Créneaux TEL BAQ : <span id="adminCountTel" class="font-bold text-indigo-700">0</span> créneaux</div>
               <div>• Créneaux CHAT BAQ : <span id="adminCountChat" class="font-bold text-indigo-700">0</span> créneaux</div>
             </div>
@@ -533,38 +533,11 @@
   </main>
 
   <script>
-    // BASE DE DONNÉES INITIALE EMBARQUÉE (S40)
-    const initialBaseData = {
-      "S40": {
-        agents: [
-          { id: 1, code: '1001', name: 'Agent TEL 1', activity: 'TEL BAQ', schedules: { 'Lundi 28/09': { start: 540, end: 1080, pause: 840 }, 'Mardi 29/09': { start: 540, end: 1080, pause: 840 }, 'Mercredi 30/09': { start: 540, end: 1080, pause: 840 }, 'Jeudi 01/10': { start: 540, end: 1080, pause: 840 }, 'Vendredi 02/10': { start: 540, end: 1080, pause: 840 } } },
-          { id: 2, code: '1002', name: 'Agent TEL 2', activity: 'TEL BAQ', schedules: { 'Lundi 28/09': { start: 540, end: 1080, pause: 840 }, 'Mardi 29/09': { start: 540, end: 1080, pause: 840 }, 'Mercredi 30/09': { start: 540, end: 1080, pause: 840 }, 'Jeudi 01/10': { start: 540, end: 1080, pause: 840 }, 'Vendredi 02/10': { start: 540, end: 1080, pause: 840 } } },
-          { id: 3, code: '1003', name: 'Agent TEL 3', activity: 'TEL BAQ', schedules: { 'Lundi 28/09': { start: 540, end: 1080, pause: 840 }, 'Mardi 29/09': { start: 540, end: 1080, pause: 840 }, 'Mercredi 30/09': { start: 540, end: 1080, pause: 840 }, 'Jeudi 01/10': { start: 540, end: 1080, pause: 840 }, 'Vendredi 02/10': { start: 540, end: 1080, pause: 840 } } },
-          { id: 4, code: '1004', name: 'Agent TEL 4', activity: 'TEL BAQ', schedules: { 'Lundi 28/09': { start: 540, end: 1080, pause: 840 }, 'Mardi 29/09': { start: 540, end: 1080, pause: 840 }, 'Mercredi 30/09': { start: 540, end: 1080, pause: 840 }, 'Jeudi 01/10': { start: 540, end: 1080, pause: 840 }, 'Vendredi 02/10': { start: 540, end: 1080, pause: 840 } } },
-          { id: 5, code: '1005', name: 'Agent TEL 5', activity: 'TEL BAQ', schedules: { 'Lundi 28/09': { start: 540, end: 1080, pause: 840 }, 'Mardi 29/09': { start: 540, end: 1080, pause: 840 }, 'Mercredi 30/09': { start: 540, end: 1080, pause: 840 }, 'Jeudi 01/10': { start: 540, end: 1080, pause: 840 }, 'Vendredi 02/10': { start: 540, end: 1080, pause: 840 } } },
-          { id: 6, code: '2001', name: 'Agent CHAT 1', activity: 'CHAT BAQ', schedules: { 'Lundi 28/09': { start: 540, end: 1080, pause: 840 }, 'Mardi 29/09': { start: 540, end: 1080, pause: 840 }, 'Mercredi 30/09': { start: 540, end: 1080, pause: 840 }, 'Jeudi 01/10': { start: 540, end: 1080, pause: 840 }, 'Vendredi 02/10': { start: 540, end: 1080, pause: 840 } } },
-          { id: 7, code: '2002', name: 'Agent CHAT 2', activity: 'CHAT BAQ', schedules: { 'Lundi 28/09': { start: 540, end: 1080, pause: 840 }, 'Mardi 29/09': { start: 540, end: 1080, pause: 840 }, 'Mercredi 30/09': { start: 540, end: 1080, pause: 840 }, 'Jeudi 01/10': { start: 540, end: 1080, pause: 840 }, 'Vendredi 02/10': { start: 540, end: 1080, pause: 840 } } }
-        ],
-        forecast: {
-          "TEL BAQ": {
-            0: [0], 1: [0], 2: [0], 3: [0], 4: [0], 5: [0], 6: [5], 7: [23], 8: [46],
-            9: [103], 10: [95], 11: [93], 12: [92], 13: [82], 14: [76], 15: [85], 16: [86], 17: [88],
-            18: [84], 19: [60], 20: [35], 21: [15], 22: [5], 23: [0]
-          },
-          "CHAT BAQ FR": {
-            0: [0], 1: [0], 2: [0], 3: [0], 4: [0], 5: [0], 6: [2], 7: [10], 8: [20],
-            9: [45], 10: [40], 11: [42], 12: [38], 13: [35], 14: [32], 15: [40], 16: [41], 17: [39],
-            18: [30], 19: [20], 20: [10], 21: [5], 22: [0], 23: [0]
-          }
-        }
-      }
-    };
-
-    let weeksDatabase = JSON.parse(localStorage.getItem('wfm_weeks_db')) || initialBaseData;
+    let weeksDatabase = JSON.parse(localStorage.getItem('wfm_weeks_db')) || {};
     let currentWeekCode = "S40";
 
-    let rawAgentsData = weeksDatabase[currentWeekCode]?.agents || [];
-    let rawForecastData = weeksDatabase[currentWeekCode]?.forecast || { "TEL BAQ": {}, "CHAT BAQ FR": {} };
+    let rawAgentsData = [];
+    let rawForecastData = { "TEL BAQ": {}, "CHAT BAQ FR": {} };
 
     let presenceChartInstance = null;
     let telChartInstance = null;
@@ -574,6 +547,24 @@
     let couvertureChartInstance = null;
 
     const daysList = ['Lundi 28/09', 'Mardi 29/09', 'Mercredi 30/09', 'Jeudi 01/10', 'Vendredi 02/10', 'Samedi 03/10', 'Dimanche 04/10'];
+
+    const fileInput = document.getElementById('fileInputAdmin');
+    const dropZone = document.getElementById('dropZoneAdmin');
+    const daySelect = document.getElementById('daySelect');
+    const weekSelect = document.getElementById('weekSelect');
+    const couvertureQueueSelect = document.getElementById('couvertureQueueSelect');
+
+    if (dropZone && fileInput) {
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eName => {
+        dropZone.addEventListener(eName, (e) => { e.preventDefault(); e.stopPropagation(); }, false);
+      });
+      dropZone.addEventListener('drop', (e) => {
+        if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+      });
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length) handleFile(e.target.files[0]);
+      });
+    }
 
     // NAVIGATION
     function switchTab(tabName) {
@@ -621,7 +612,14 @@
       const weekSelect = document.getElementById('weekSelect');
       if (!weekSelect) return;
       weekSelect.innerHTML = '';
-      Object.keys(weeksDatabase).forEach(wCode => {
+      const availableWeeks = Object.keys(weeksDatabase);
+
+      if (availableWeeks.length === 0) {
+        weekSelect.innerHTML = '<option value="S40">Aucune semaine chargée (Importez un fichier)</option>';
+        return;
+      }
+
+      availableWeeks.forEach(wCode => {
         const opt = document.createElement('option');
         opt.value = wCode;
         opt.textContent = `Semaine ${wCode}`;
@@ -664,11 +662,9 @@
           const data = new Uint8Array(e.target.result);
           const workbook = XLSX.read(data, { type: 'array', cellDates: true });
 
-          const newWeekCode = document.getElementById('adminWeekInput')?.value.trim() || 'S41';
+          const newWeekCode = document.getElementById('adminWeekInput')?.value.trim() || 'S40';
 
-          if (!weeksDatabase[newWeekCode]) {
-            weeksDatabase[newWeekCode] = { agents: [], forecast: { "TEL BAQ": {}, "CHAT BAQ FR": {} } };
-          }
+          weeksDatabase[newWeekCode] = { agents: [], forecast: { "TEL BAQ": {}, "CHAT BAQ FR": {} } };
 
           if (workbook.SheetNames.includes('Planning')) {
             parsePlanningSheet(XLSX.utils.sheet_to_json(workbook.Sheets['Planning'], { header: 1, raw: true }), newWeekCode);
@@ -687,17 +683,19 @@
 
           updateWeekDropdown();
           updateUI();
-          alert(`Nouvelle Semaine ${newWeekCode} ajoutée avec succès !`);
+          alert(`Importation réussie : ${rawAgentsData.length} agents chargés pour la Semaine ${newWeekCode} !`);
         } catch (err) {
-          console.error("Erreur d'import :", err);
+          console.error("Erreur d'importation :", err);
           alert("Erreur lors de la lecture du fichier Excel.");
         }
       };
       reader.readAsArrayBuffer(file);
     }
 
+    // PARSING COMPLET SANS LIMITATION DE LIGNES
     function parsePlanningSheet(rows, weekCode) {
-      if (rows.length < 3) return;
+      if (!rows || rows.length < 2) return;
+
       const daysMapping = [
         { name: 'Lundi 28/09', startCol: 4, endCol: 5, pauseCol: 6 },
         { name: 'Mardi 29/09', startCol: 8, endCol: 9, pauseCol: 10 },
@@ -709,32 +707,43 @@
       ];
 
       const agentsList = [];
-      for (let i = 2; i < rows.length; i++) {
+
+      for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
         if (!row || row.length === 0) continue;
 
-        const code = row[0];
-        const name = row[3];
-        let activity = (row[2] || 'TEL BAQ').trim();
-        if (activity.includes('CHAT')) activity = 'CHAT BAQ';
+        const rawName = row[3] || row[1] || row[2];
+        if (!rawName) continue;
+
+        const nameStr = String(rawName).trim();
+
+        // Ignorer en-têtes
+        if (nameStr.toLowerCase().includes('nom') || nameStr.toLowerCase().includes('prénom') || nameStr.toLowerCase().includes('agent')) {
+          continue;
+        }
+
+        const code = row[0] ? String(row[0]).trim() : `AG-${i}`;
+        let activity = (row[2] || 'TEL BAQ').toString().trim();
+        if (activity.toUpperCase().includes('CHAT')) activity = 'CHAT BAQ';
         else activity = 'TEL BAQ';
 
-        if (!name || String(name).trim() === '' || String(name).includes('Nom et prénom')) continue;
+        const agent = { id: i + 1, code, name: nameStr, activity, schedules: {} };
 
-        const agent = { id: i, code, name, activity, schedules: {} };
         daysMapping.forEach(day => {
           const st = parseTimeToMinutes(row[day.startCol]);
           const et = parseTimeToMinutes(row[day.endCol]);
           const pt = parseTimeToMinutes(row[day.pauseCol]);
           agent.schedules[day.name] = { start: st, end: et, pause: pt };
         });
+
         agentsList.push(agent);
       }
+
       weeksDatabase[weekCode].agents = agentsList;
     }
 
     function parseForecastSheet(rows, queueKey, weekCode) {
-      if (rows.length < 2) return;
+      if (!rows || rows.length < 2) return;
       const forecastObj = {};
 
       for (let i = 1; i < rows.length; i++) {
@@ -752,7 +761,6 @@
       weeksDatabase[weekCode].forecast[queueKey] = forecastObj;
     }
 
-    // FORMULE CAPACITAIRE TRAITÉ / REÇU
     function calcCapacitaire(netEtp, aht, forecastVol, concurrency = 1) {
       const capacityPerHour = (netEtp * 3600.0 * concurrency) / aht;
       if (forecastVol <= 0) return { capacity: capacityPerHour, treated: 0, qs: 100, reqNet: 0 };
@@ -1344,7 +1352,7 @@
       updateUI();
     }
 
-    // INITIALISATION IMMÉDIATE
+    // INITIALISATION
     window.addEventListener('DOMContentLoaded', () => {
       updateWeekDropdown();
       updateUI();
