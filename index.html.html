@@ -1,0 +1,1294 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plateforme WFM Planning, Dimensionnement & Supabase</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- SheetJS (xlsx) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen pb-12">
+
+  <!-- En-tête avec Navigation -->
+  <header class="bg-indigo-700 text-white shadow-md mb-8">
+    <div class="max-w-7xl mx-auto px-4 py-5 flex flex-col md:flex-row justify-between items-center gap-4">
+      <div class="flex items-center gap-3">
+        <i class="fa-solid fa-chart-line text-3xl text-indigo-200"></i>
+        <div>
+          <h1 class="text-2xl font-bold">Plateforme WFM Planning & Reporting</h1>
+          <p class="text-indigo-200 text-sm">Dimensionnement Capacitaire Traité/Reçu, Supabase & Vercel</p>
+        </div>
+      </div>
+
+      <!-- Navigation Onglets -->
+      <nav class="flex bg-indigo-800/80 p-1 rounded-xl text-xs font-semibold gap-1 flex-wrap justify-center">
+        <button id="tabNavPresence" onclick="switchTab('presence')" class="px-3 py-2 rounded-lg transition bg-white text-indigo-800 shadow">
+          <i class="fa-solid fa-users-gear mr-1.5"></i>Présence
+        </button>
+        <button id="tabNavTel" onclick="switchTab('tel')" class="px-3 py-2 rounded-lg transition text-indigo-100 hover:text-white">
+          <i class="fa-solid fa-phone-volume mr-1.5"></i>Dim. TEL BAQ
+        </button>
+        <button id="tabNavChat" onclick="switchTab('chat')" class="px-3 py-2 rounded-lg transition text-indigo-100 hover:text-white">
+          <i class="fa-solid fa-comments mr-1.5"></i>Dim. CHAT BAQ
+        </button>
+        <button id="tabNavReporting" onclick="switchTab('reporting')" class="px-3 py-2 rounded-lg transition text-indigo-100 hover:text-white">
+          <i class="fa-solid fa-square-poll-vertical mr-1.5"></i>Dashboard
+        </button>
+        <button id="tabNavCouverture" onclick="switchTab('couverture')" class="px-3 py-2 rounded-lg transition text-indigo-100 hover:text-white">
+          <i class="fa-solid fa-shield-halved mr-1.5"></i>Couverture Charge
+        </button>
+        <button id="tabNavAdmin" onclick="switchTab('admin')" class="px-3 py-2 rounded-lg transition text-amber-300 hover:text-amber-100 bg-indigo-900/50">
+          <i class="fa-solid fa-user-shield mr-1.5"></i>Espace Admin
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 space-y-8">
+
+    <!-- Bandeau Sélecteur de Semaine & Jour -->
+    <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-600">
+      <div class="flex items-center gap-4 flex-wrap">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-calendar-check text-indigo-600 text-base"></i>
+          <span class="font-bold text-slate-700">Semaine :</span>
+          <select id="weekSelect" class="bg-indigo-50 border border-indigo-200 rounded px-3 py-1 font-bold text-indigo-900 focus:outline-none">
+            <option value="S40">Semaine S40</option>
+          </select>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-calendar-week text-slate-500 text-base"></i>
+          <span>Jour :</span>
+          <select id="daySelect" class="bg-slate-100 border border-slate-300 rounded px-2 py-1 font-semibold text-slate-800 focus:outline-none">
+            <option value="all">Tous les jours de la semaine</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <span id="dbStatusBadge" class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-md font-bold flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>Supabase Connecté
+        </span>
+      </div>
+    </section>
+
+
+    <!-- ==================== PAGE 1 : PRÉSENCE ==================== -->
+    <div id="pagePresence" class="space-y-8">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <span class="text-xs font-medium text-slate-500 uppercase">Agents Planifiés</span>
+            <div id="statTotalAgents" class="text-2xl font-bold text-slate-800">0</div>
+          </div>
+          <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center text-xl">
+            <i class="fa-solid fa-users"></i>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <span class="text-xs font-medium text-slate-500 uppercase">Présence Max (1h)</span>
+            <div id="statMaxPresence" class="text-2xl font-bold text-emerald-600">0</div>
+          </div>
+          <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center text-xl">
+            <i class="fa-solid fa-chart-line"></i>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <span class="text-xs font-medium text-slate-500 uppercase">Créneau le + Chargé</span>
+            <div id="statPeakHour" class="text-lg font-bold text-slate-800">--:--</div>
+          </div>
+          <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center text-xl">
+            <i class="fa-solid fa-clock"></i>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <span class="text-xs font-medium text-slate-500 uppercase">Mode de calcul</span>
+            <div class="text-sm font-semibold text-indigo-700">ETP Net (Hors Pauses)</div>
+          </div>
+          <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center text-xl">
+            <i class="fa-solid fa-mug-hot"></i>
+          </div>
+        </div>
+      </div>
+
+      <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <i class="fa-solid fa-chart-column text-indigo-600"></i>
+          Graphique de Présence Global par Créneau (1h)
+        </h2>
+        <div class="h-80 w-full">
+          <canvas id="presenceChart"></canvas>
+        </div>
+      </section>
+
+      <section class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="p-6 border-b border-slate-200">
+          <h2 class="text-lg font-bold text-slate-800">Tableau de Présence Globale par Créneau (1h)</h2>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr class="bg-slate-100 text-slate-600 text-xs uppercase font-semibold border-b border-slate-200">
+                <th class="py-3 px-4">Créneau (1h)</th>
+                <th class="py-3 px-4 text-center">TEL BAQ Net</th>
+                <th class="py-3 px-4 text-center">CHAT BAQ Net</th>
+                <th class="py-3 px-4 text-center">Total Net</th>
+                <th class="py-3 px-4 text-center">Agents en Pause</th>
+                <th class="py-3 px-4 text-center">Effectif Shift Brut</th>
+              </tr>
+            </thead>
+            <tbody id="slotsTableBody" class="divide-y divide-slate-200"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+
+    <!-- ==================== PAGE 2 : DIMENSIONNEMENT TEL BAQ ==================== -->
+    <div id="pageTel" class="space-y-8 hidden">
+      <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <i class="fa-solid fa-phone-volume text-indigo-600"></i>
+            Dimensionnement TEL BAQ (Modèle Capacitaire Traité / Reçu)
+          </h2>
+          <button onclick="switchTab('admin')" class="text-xs bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-1.5 rounded-lg font-semibold border border-indigo-200 transition">
+            <i class="fa-solid fa-gear mr-1"></i>Modifier les paramètres dans Admin
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
+          <div><span class="text-slate-500 block">DMT Appel :</span><span id="displayTelAHT" class="font-bold text-slate-800 text-sm">240 sec</span></div>
+          <div><span class="text-slate-500 block">Shrinkage :</span><span id="displayTelShrinkage" class="font-bold text-slate-800 text-sm">20%</span></div>
+          <div><span class="text-slate-500 block">Règle de déduction :</span><span class="font-bold text-indigo-700 text-sm">-3 ETP Net (09h-18h)</span></div>
+        </div>
+      </section>
+
+      <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <h2 class="text-lg font-bold text-slate-800 mb-4">TEL BAQ : Appels Reçus vs Capacité de Traitement</h2>
+        <div class="h-80 w-full"><canvas id="telChart"></canvas></div>
+      </section>
+
+      <section class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="p-6 border-b border-slate-200">
+          <h2 class="text-lg font-bold text-slate-800">Matrice Capacitaire TEL BAQ</h2>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr class="bg-slate-100 text-slate-600 text-xs uppercase font-semibold border-b border-slate-200">
+                <th class="py-3 px-4">Créneau (1h)</th>
+                <th class="py-3 px-4 text-center">Appels Reçus</th>
+                <th class="py-3 px-4 text-center">ETP Net Présent</th>
+                <th class="py-3 px-4 text-center bg-indigo-50">ETP Net Ajusté (-3 de 9h-18h)</th>
+                <th class="py-3 px-4 text-center">Capacité Traitement (Appels/h)</th>
+                <th class="py-3 px-4 text-center">Appels Traités</th>
+                <th class="py-3 px-4 text-center">ETP Net Requis (100% Traité)</th>
+                <th class="py-3 px-4 text-center">ETP Brut Requis (+Shrink)</th>
+                <th class="py-3 px-4 text-center">QS (%) (Traité/Reçu)</th>
+              </tr>
+            </thead>
+            <tbody id="telTableBody" class="divide-y divide-slate-200"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+
+    <!-- ==================== PAGE 3 : DIMENSIONNEMENT CHAT BAQ ==================== -->
+    <div id="pageChat" class="space-y-8 hidden">
+      <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <i class="fa-solid fa-comments text-indigo-600"></i>
+            Dimensionnement CHAT BAQ (avec Simultanéité)
+          </h2>
+          <button onclick="switchTab('admin')" class="text-xs bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-1.5 rounded-lg font-semibold border border-indigo-200 transition">
+            <i class="fa-solid fa-gear mr-1"></i>Modifier les paramètres dans Admin
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
+          <div><span class="text-slate-500 block">Simultanéité (Concurrency) :</span><span id="displayChatConcurrency" class="font-bold text-indigo-700 text-sm">2 chats/agent</span></div>
+          <div><span class="text-slate-500 block">DMT Chat :</span><span id="displayChatAHT" class="font-bold text-slate-800 text-sm">300 sec</span></div>
+          <div><span class="text-slate-500 block">Shrinkage :</span><span id="displayChatShrinkage" class="font-bold text-slate-800 text-sm">20%</span></div>
+        </div>
+      </section>
+
+      <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <h2 class="text-lg font-bold text-slate-800 mb-4">CHAT BAQ : Chats Reçus vs Capacité de Traitement</h2>
+        <div class="h-80 w-full"><canvas id="chatChart"></canvas></div>
+      </section>
+
+      <section class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="p-6 border-b border-slate-200">
+          <h2 class="text-lg font-bold text-slate-800">Matrice Capacitaire CHAT BAQ</h2>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr class="bg-slate-100 text-slate-600 text-xs uppercase font-semibold border-b border-slate-200">
+                <th class="py-3 px-4">Créneau (1h)</th>
+                <th class="py-3 px-4 text-center">Chats Reçus</th>
+                <th class="py-3 px-4 text-center">ETP Net Présent</th>
+                <th class="py-3 px-4 text-center">Capacité Traitement (Chats/h)</th>
+                <th class="py-3 px-4 text-center">Chats Traités</th>
+                <th class="py-3 px-4 text-center">ETP Net Requis (100% Traité)</th>
+                <th class="py-3 px-4 text-center">ETP Brut Requis (+Shrink)</th>
+                <th class="py-3 px-4 text-center">QS (%) (Traité/Reçu)</th>
+              </tr>
+            </thead>
+            <tbody id="chatTableBody" class="divide-y divide-slate-200"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+
+    <!-- ==================== PAGE 4 : REPORTING / DASHBOARD ==================== -->
+    <div id="pageReporting" class="space-y-8 hidden">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+          <span class="text-xs font-semibold text-slate-500 uppercase block mb-1">QS Global TEL BAQ</span>
+          <div id="repQsTel" class="text-3xl font-extrabold text-indigo-600">0%</div>
+          <span class="text-[11px] text-slate-400 mt-1 block"><span id="repVolTelTreated">0</span> / <span id="repVolTelRec">0</span> appels traités</span>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+          <span class="text-xs font-semibold text-slate-500 uppercase block mb-1">QS Global CHAT BAQ</span>
+          <div id="repQsChat" class="text-3xl font-extrabold text-cyan-600">0%</div>
+          <span class="text-[11px] text-slate-400 mt-1 block"><span id="repVolChatTreated">0</span> / <span id="repVolChatRec">0</span> chats traités</span>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+          <span class="text-xs font-semibold text-slate-500 uppercase block mb-1">Total Heures Travaillées</span>
+          <div id="repTotalHours" class="text-3xl font-extrabold text-slate-800">0 h</div>
+          <span class="text-[11px] text-slate-400 mt-1 block">Sur la période sélectionnée</span>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+          <span class="text-xs font-semibold text-slate-500 uppercase block mb-1">ETP Moyen Présent</span>
+          <div id="repEtpAvg" class="text-3xl font-extrabold text-emerald-600">0</div>
+          <span class="text-[11px] text-slate-400 mt-1 block">Agents nets par créneau actif</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <h2 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-chart-pie text-indigo-600"></i>
+            Répartition des Volumes Reçus (TEL vs CHAT)
+          </h2>
+          <div class="h-64 w-full">
+            <canvas id="reportingPieChart"></canvas>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <h2 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-chart-line text-indigo-600"></i>
+            Taux de Couverture (QS %) Heure par Heure
+          </h2>
+          <div class="h-64 w-full">
+            <canvas id="reportingLineChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <section class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="p-6 border-b border-slate-200">
+          <h2 class="text-base font-bold text-slate-800">Tableau de Synthèse par Jour de la Semaine</h2>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr class="bg-slate-100 text-slate-600 text-xs uppercase font-semibold border-b border-slate-200">
+                <th class="py-3 px-4">Jour</th>
+                <th class="py-3 px-4 text-center">Appels Reçus</th>
+                <th class="py-3 px-4 text-center">Appels Traités</th>
+                <th class="py-3 px-4 text-center">QS TEL (%)</th>
+                <th class="py-3 px-4 text-center">Chats Reçus</th>
+                <th class="py-3 px-4 text-center">Chats Traités</th>
+                <th class="py-3 px-4 text-center">QS CHAT (%)</th>
+                <th class="py-3 px-4 text-center">ETP Requis Total</th>
+              </tr>
+            </thead>
+            <tbody id="reportingTableBody" class="divide-y divide-slate-200"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+
+    <!-- ==================== PAGE 5 : COUVERTURE DE CHARGE ==================== -->
+    <div id="pageCouverture" class="space-y-8 hidden">
+      <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+          <div>
+            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-shield-halved text-indigo-600"></i>
+              Couverture de Charge en Heures (Besoins vs Planifié)
+            </h2>
+            <p class="text-xs text-slate-500">Compare le volume de travail exprimé en heures avec le total d'heures de présence effective planifiées</p>
+          </div>
+
+          <div>
+            <select id="couvertureQueueSelect" class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-indigo-500">
+              <option value="TEL BAQ">TEL BAQ (Appels)</option>
+              <option value="CHAT BAQ FR">CHAT BAQ (Chat)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <div class="bg-indigo-50/60 border border-indigo-100 p-4 rounded-xl">
+            <span class="text-xs text-indigo-700 font-semibold block uppercase mb-1">Heures de Charge Requises</span>
+            <div id="covTotalWorkloadHours" class="text-2xl font-bold text-indigo-900">0.0 h</div>
+          </div>
+
+          <div class="bg-slate-100 border border-slate-200 p-4 rounded-xl">
+            <span class="text-xs text-slate-600 font-semibold block uppercase mb-1">Heures Planifiées Net</span>
+            <div id="covTotalPlannedHours" class="text-2xl font-bold text-slate-800">0.0 h</div>
+          </div>
+
+          <div class="bg-emerald-50/60 border border-emerald-100 p-4 rounded-xl">
+            <span class="text-xs text-emerald-700 font-semibold block uppercase mb-1">Taux Global de Couverture</span>
+            <div id="covGlobalRate" class="text-2xl font-bold text-emerald-700">0.0 %</div>
+          </div>
+        </div>
+
+        <div class="h-80 w-full mb-6">
+          <canvas id="couvertureChart"></canvas>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr class="bg-slate-100 text-slate-600 text-xs uppercase font-semibold border-b border-slate-200">
+                <th class="py-3 px-4">Créneau (1h)</th>
+                <th class="py-3 px-4 text-center">Volume Reçu</th>
+                <th class="py-3 px-4 text-center">Charge (Heures)</th>
+                <th class="py-3 px-4 text-center">Heures Planifiées Net</th>
+                <th class="py-3 px-4 text-center">Écart (Heures)</th>
+                <th class="py-3 px-4 text-center">Taux de Couverture (%)</th>
+              </tr>
+            </thead>
+            <tbody id="couvertureTableBody" class="divide-y divide-slate-200"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+
+    <!-- ==================== PAGE 6 : ESPACE ADMIN ==================== -->
+    <div id="pageAdmin" class="space-y-8 hidden">
+      <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-3 text-amber-800 text-sm">
+        <i class="fa-solid fa-user-gear text-2xl text-amber-600"></i>
+        <div>
+          <h3 class="font-bold">Espace Administrateur & Synchronisation Supabase</h3>
+          <p class="text-xs text-amber-700">Chaque nouvel import de fichier ajoute une semaine supplémentaire dans la base sans écraser le passé.</p>
+        </div>
+      </div>
+
+      <!-- Section Importation & Données Supabase -->
+      <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <h2 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <i class="fa-solid fa-cloud-arrow-up text-indigo-600"></i>
+          1. Importation d'une nouvelle Semaine (ex: S40, S41, S42...)
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Code / Nom de la Semaine :</label>
+              <input type="text" id="adminWeekInput" value="S40" placeholder="Ex: S40" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold text-indigo-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            </div>
+
+            <label id="dropZoneAdmin" class="flex flex-col items-center justify-center border-2 border-dashed border-indigo-300 hover:border-indigo-500 bg-indigo-50/50 hover:bg-indigo-50 rounded-xl p-6 transition cursor-pointer text-center group">
+              <input type="file" id="fileInputAdmin" accept=".xlsx, .xls, .csv" class="hidden" />
+              <i class="fa-solid fa-file-excel text-3xl text-indigo-500 mb-2"></i>
+              <span class="font-semibold text-indigo-900 text-sm">Sélectionner le fichier Excel de la Semaine</span>
+              <span class="text-xs text-slate-500 mt-1">Enregistre directement dans Supabase</span>
+            </label>
+          </div>
+
+          <div class="flex flex-col justify-center space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+            <span class="font-bold text-xs text-slate-700 uppercase">Statut Supabase :</span>
+            <div class="text-xs space-y-1 text-slate-600">
+              <div>• Base de données : <span class="font-bold text-emerald-600">Connectée</span></div>
+              <div>• Agents chargés (Semaine en cours) : <span id="adminCountAgents" class="font-bold text-indigo-700">0</span></div>
+              <div>• Prévisions TEL BAQ : <span id="adminCountTel" class="font-bold text-indigo-700">0</span> créneaux</div>
+              <div>• Prévisions CHAT BAQ : <span id="adminCountChat" class="font-bold text-indigo-700">0</span> créneaux</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Paramètres Métier TEL & CHAT -->
+      <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <h2 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-indigo-600"></i>
+          2. Paramétrage des Rôles & Calculs Métier
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="bg-indigo-50/50 p-5 rounded-xl border border-indigo-200 space-y-4">
+            <h3 class="font-bold text-sm text-indigo-900 flex items-center gap-2">
+              <i class="fa-solid fa-phone"></i> Activité TEL BAQ
+            </h3>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">DMT Appel (secondes) :</label>
+              <input type="number" id="adminTelAHT" value="240" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-semibold">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Shrinkage / Losses (%) :</label>
+              <input type="number" id="adminTelShrinkage" value="20" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-semibold">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Objectif Cible QS Traité/Reçu (%) :</label>
+              <input type="number" id="adminTelTargetQS" value="100" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-semibold">
+            </div>
+
+            <div class="pt-2 border-t border-indigo-200 flex items-center justify-between">
+              <div>
+                <span class="text-xs font-bold text-slate-700 block">Soustraction -3 ETP Net (09h-18h)</span>
+                <span class="text-[10px] text-slate-500">Tâches annexes / Back-office</span>
+              </div>
+              <input type="checkbox" id="adminTelDeductionToggle" checked class="w-4 h-4 text-indigo-600 rounded border-slate-300">
+            </div>
+          </div>
+
+          <div class="bg-cyan-50/50 p-5 rounded-xl border border-cyan-200 space-y-4">
+            <h3 class="font-bold text-sm text-cyan-900 flex items-center gap-2">
+              <i class="fa-solid fa-comments"></i> Activité CHAT BAQ
+            </h3>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Simultanéité (Chats par Agent) :</label>
+              <input type="number" id="adminChatConcurrency" value="2" min="1" max="5" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-bold text-cyan-900">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">DMT Chat (secondes) :</label>
+              <input type="number" id="adminChatAHT" value="300" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-semibold">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Shrinkage / Losses (%) :</label>
+              <input type="number" id="adminChatShrinkage" value="20" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-semibold">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Objectif Cible QS Traité/Reçu (%) :</label>
+              <input type="number" id="adminChatTargetQS" value="100" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-semibold">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Gestion des Agents -->
+      <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+          <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+            <i class="fa-solid fa-users-gear text-indigo-600"></i>
+            3. Gestion des Agents & Changement d'Activité
+          </h2>
+
+          <button onclick="openAddAgentModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5">
+            <i class="fa-solid fa-user-plus"></i>Ajouter un Agent
+          </button>
+        </div>
+
+        <div class="overflow-x-auto max-h-80 overflow-y-auto border border-slate-200 rounded-lg">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead class="sticky top-0 bg-slate-100 text-slate-600 font-bold border-b border-slate-200">
+              <tr>
+                <th class="py-2 px-3">Code / ID</th>
+                <th class="py-2 px-3">Nom & Prénom</th>
+                <th class="py-2 px-3">Activité Affectée</th>
+                <th class="py-2 px-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="adminAgentsTableBody" class="divide-y divide-slate-200"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+  </main>
+
+  <script>
+    // CONFIGURATION ET INITIALISATION SUPABASE
+    const SUPABASE_URL = 'https://vysarmqjgfnnpetoozbw.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_xwzHkjtP1X-70XT5otBASw_x3sHsYQ8';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let rawAgentsData = [];
+    let rawForecastData = { "TEL BAQ": {}, "CHAT BAQ FR": {} };
+
+    let presenceChartInstance = null;
+    let telChartInstance = null;
+    let chatChartInstance = null;
+    let reportingPieChartInstance = null;
+    let reportingLineChartInstance = null;
+    let couvertureChartInstance = null;
+
+    const daysList = ['Lundi 28/09', 'Mardi 29/09', 'Mercredi 30/09', 'Jeudi 01/10', 'Vendredi 02/10', 'Samedi 03/10', 'Dimanche 04/10'];
+
+    const fileInput = document.getElementById('fileInputAdmin');
+    const dropZone = document.getElementById('dropZoneAdmin');
+    const daySelect = document.getElementById('daySelect');
+    const weekSelect = document.getElementById('weekSelect');
+    const couvertureQueueSelect = document.getElementById('couvertureQueueSelect');
+
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eName => {
+      dropZone.addEventListener(eName, (e) => { e.preventDefault(); e.stopPropagation(); }, false);
+    });
+    dropZone.addEventListener('drop', (e) => {
+      if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length) handleFile(e.target.files[0]);
+    });
+
+    daySelect.addEventListener('change', updateUI);
+    weekSelect.addEventListener('change', updateUI);
+    couvertureQueueSelect.addEventListener('change', updateUI);
+
+    ['adminTelAHT', 'adminTelShrinkage', 'adminTelTargetQS', 'adminTelDeductionToggle',
+     'adminChatConcurrency', 'adminChatAHT', 'adminChatShrinkage', 'adminChatTargetQS'].forEach(id => {
+      const el = document.getElementById(id);
+      el.addEventListener('input', updateUI);
+      el.addEventListener('change', updateUI);
+    });
+
+    function switchTab(tabName) {
+      const pages = ['pagePresence', 'pageTel', 'pageChat', 'pageReporting', 'pageCouverture', 'pageAdmin'];
+      const btns = ['tabNavPresence', 'tabNavTel', 'tabNavChat', 'tabNavReporting', 'tabNavCouverture', 'tabNavAdmin'];
+
+      pages.forEach(p => document.getElementById(p).classList.add('hidden'));
+      btns.forEach(b => document.getElementById(b).className = "px-3 py-2 rounded-lg transition text-indigo-100 hover:text-white");
+
+      if (tabName === 'presence') {
+        document.getElementById('pagePresence').classList.remove('hidden');
+        document.getElementById('tabNavPresence').className = "px-3 py-2 rounded-lg transition bg-white text-indigo-800 shadow";
+      } else if (tabName === 'tel') {
+        document.getElementById('pageTel').classList.remove('hidden');
+        document.getElementById('tabNavTel').className = "px-3 py-2 rounded-lg transition bg-white text-indigo-800 shadow";
+      } else if (tabName === 'chat') {
+        document.getElementById('pageChat').classList.remove('hidden');
+        document.getElementById('tabNavChat').className = "px-3 py-2 rounded-lg transition bg-white text-indigo-800 shadow";
+      } else if (tabName === 'reporting') {
+        document.getElementById('pageReporting').classList.remove('hidden');
+        document.getElementById('tabNavReporting').className = "px-3 py-2 rounded-lg transition bg-white text-indigo-800 shadow";
+      } else if (tabName === 'couverture') {
+        document.getElementById('pageCouverture').classList.remove('hidden');
+        document.getElementById('tabNavCouverture').className = "px-3 py-2 rounded-lg transition bg-white text-indigo-800 shadow";
+      } else if (tabName === 'admin') {
+        document.getElementById('pageAdmin').classList.remove('hidden');
+        document.getElementById('tabNavAdmin').className = "px-3 py-2 rounded-lg transition bg-amber-400 text-slate-900 shadow font-bold";
+      }
+      updateUI();
+    }
+
+    function parseTimeToMinutes(val) {
+      if (val === null || val === undefined || val === '') return null;
+      if (val instanceof Date) {
+        if (isNaN(val.getTime())) return null;
+        return val.getHours() * 60 + val.getMinutes();
+      }
+      if (typeof val === 'string') {
+        const cleaned = val.trim().toLowerCase();
+        if (cleaned.includes('repos') || cleaned.includes('cp') || cleaned.includes('formation')) return null;
+        if (cleaned.includes('t') || cleaned.includes('gmt') || cleaned.includes('1900')) {
+          const d = new Date(val);
+          if (!isNaN(d.getTime())) return d.getHours() * 60 + d.getMinutes();
+        }
+        const parts = cleaned.replace('h', ':').split(':');
+        if (parts.length >= 2) {
+          const h = parseInt(parts[0], 10);
+          const m = parseInt(parts[1], 10);
+          if (!isNaN(h) && !isNaN(m)) return h * 60 + m;
+        }
+      }
+      if (typeof val === 'number') {
+        if (val < 0) return null;
+        return Math.round((val % 1) * 24 * 60);
+      }
+      return null;
+    }
+
+    function handleFile(file) {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+
+        if (workbook.SheetNames.includes('Planning')) {
+          parsePlanningSheet(XLSX.utils.sheet_to_json(workbook.Sheets['Planning'], { header: 1, raw: true }));
+        }
+        if (workbook.SheetNames.includes('Besoin en ETP TEL BAQ')) {
+          parseForecastSheet(XLSX.utils.sheet_to_json(workbook.Sheets['Besoin en ETP TEL BAQ'], { header: 1, raw: true }), 'TEL BAQ');
+        }
+        if (workbook.SheetNames.includes('Besoin en ETP CHAT BAQ')) {
+          parseForecastSheet(XLSX.utils.sheet_to_json(workbook.Sheets['Besoin en ETP CHAT BAQ'], { header: 1, raw: true }), 'CHAT BAQ FR');
+        }
+        updateUI();
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function parsePlanningSheet(rows) {
+      if (rows.length < 3) return;
+      const daysMapping = [
+        { name: 'Lundi 28/09', startCol: 4, endCol: 5, pauseCol: 6 },
+        { name: 'Mardi 29/09', startCol: 8, endCol: 9, pauseCol: 10 },
+        { name: 'Mercredi 30/09', startCol: 12, endCol: 13, pauseCol: 14 },
+        { name: 'Jeudi 01/10', startCol: 16, endCol: 17, pauseCol: 18 },
+        { name: 'Vendredi 02/10', startCol: 20, endCol: 21, pauseCol: 22 },
+        { name: 'Samedi 03/10', startCol: 24, endCol: 25, pauseCol: 26 },
+        { name: 'Dimanche 04/10', startCol: 28, endCol: 29, pauseCol: 30 }
+      ];
+
+      rawAgentsData = [];
+      for (let i = 2; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length === 0) continue;
+
+        const code = row[0];
+        const name = row[3];
+        let activity = (row[2] || 'TEL BAQ').trim();
+        if (activity.includes('CHAT')) activity = 'CHAT BAQ';
+        else activity = 'TEL BAQ';
+
+        if (!name || String(name).trim() === '' || String(name).includes('Nom et prénom')) continue;
+
+        const agent = { id: i, code, name, activity, schedules: {} };
+        daysMapping.forEach(day => {
+          const st = parseTimeToMinutes(row[day.startCol]);
+          const et = parseTimeToMinutes(row[day.endCol]);
+          const pt = parseTimeToMinutes(row[day.pauseCol]);
+          agent.schedules[day.name] = { start: st, end: et, pause: pt };
+        });
+        rawAgentsData.push(agent);
+      }
+
+      daySelect.innerHTML = '<option value="all">Tous les jours de la semaine</option>';
+      daysMapping.forEach(d => {
+        daySelect.innerHTML += `<option value="${d.name}">${d.name}</option>`;
+      });
+    }
+
+    function parseForecastSheet(rows, queueKey) {
+      rawForecastData[queueKey] = {};
+      if (rows.length < 2) return;
+
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length < 5) continue;
+        const startTime = parseTimeToMinutes(row[2]);
+        const vol = parseFloat(row[4]) || 0;
+
+        if (startTime !== null) {
+          const hour = Math.floor(startTime / 60);
+          if (!rawForecastData[queueKey][hour]) rawForecastData[queueKey][hour] = [];
+          rawForecastData[queueKey][hour].push(vol);
+        }
+      }
+    }
+
+    // FORMULE CAPACITAIRE TRAITÉ / REÇU
+    function calcCapacitaire(netEtp, aht, forecastVol, concurrency = 1) {
+      const capacityPerHour = (netEtp * 3600.0 * concurrency) / aht;
+      if (forecastVol <= 0) return { capacity: capacityPerHour, treated: 0, qs: 100, reqNet: 0 };
+
+      const treated = Math.min(capacityPerHour, forecastVol);
+      const qs = (treated / forecastVol) * 100.0;
+      const reqNet = (forecastVol * aht) / (3600.0 * concurrency);
+
+      return {
+        capacity: Math.round(capacityPerHour * 10) / 10,
+        treated: Math.round(treated * 10) / 10,
+        qs: Math.min(100, Math.max(0, qs)),
+        reqNet: reqNet
+      };
+    }
+
+    function computePresence(targetDay = null) {
+      const selectedDay = targetDay || daySelect.value;
+      const slots = Array.from({ length: 24 }, (_, i) => ({
+        hour: i,
+        label: `${String(i).padStart(2, '0')}:00 - ${String((i + 1) % 24).padStart(2, '0')}:00`,
+        activeTel: [],
+        activeChat: [],
+        pausedAgents: [],
+        totalShiftAgents: []
+      }));
+
+      rawAgentsData.forEach(agent => {
+        Object.keys(agent.schedules).forEach(dayName => {
+          if (selectedDay !== 'all' && dayName !== selectedDay) return;
+
+          const sched = agent.schedules[dayName];
+          if (!sched || sched.start === null || sched.end === null) return;
+
+          const st = sched.start;
+          const et = sched.end;
+          const pt = sched.pause;
+
+          for (let h = 0; h < 24; h++) {
+            const slotStart = h * 60;
+            const slotEnd = (h + 1) * 60;
+
+            let isInShift = false;
+            if (st < et) {
+              if (st < slotEnd && et > slotStart) isInShift = true;
+            } else if (st > et) {
+              if (slotStart >= st || slotEnd <= et) isInShift = true;
+            }
+
+            if (isInShift) {
+              let isPause = false;
+              if (pt !== null) {
+                const pauseStart = pt;
+                const pauseEnd = (pt + 60) % (24 * 60);
+                if (pt <= pt + 60) {
+                  if (pauseStart < slotEnd && (pt + 60) > slotStart) isPause = true;
+                } else {
+                  if (pauseStart < slotEnd || pauseEnd > slotStart) isPause = true;
+                }
+              }
+
+              const agentInfo = { name: agent.name, activity: agent.activity, day: dayName };
+              slots[h].totalShiftAgents.push(agentInfo);
+
+              if (isPause) {
+                slots[h].pausedAgents.push(agentInfo);
+              } else {
+                if (agent.activity === 'CHAT BAQ') slots[h].activeChat.push(agentInfo);
+                else slots[h].activeTel.push(agentInfo);
+              }
+            }
+          }
+        });
+      });
+
+      return { slots, totalAgentsCount: rawAgentsData.length };
+    }
+
+    function updateUI() {
+      const { slots, totalAgentsCount } = computePresence();
+
+      document.getElementById('statTotalAgents').textContent = totalAgentsCount;
+
+      let maxCount = 0;
+      let peakHourLabel = '--:--';
+      slots.forEach(s => {
+        const totalAct = s.activeTel.length + s.activeChat.length;
+        if (totalAct > maxCount) {
+          maxCount = totalAct;
+          peakHourLabel = s.label;
+        }
+      });
+      document.getElementById('statMaxPresence').textContent = maxCount;
+      document.getElementById('statPeakHour').textContent = peakHourLabel;
+
+      // Sync Admin Displays
+      document.getElementById('displayTelAHT').textContent = (document.getElementById('adminTelAHT').value || 240) + " sec";
+      document.getElementById('displayTelShrinkage').textContent = (document.getElementById('adminTelShrinkage').value || 20) + "%";
+
+      document.getElementById('displayChatConcurrency').textContent = (document.getElementById('adminChatConcurrency').value || 2) + " chats/agent";
+      document.getElementById('displayChatAHT').textContent = (document.getElementById('adminChatAHT').value || 300) + " sec";
+      document.getElementById('displayChatShrinkage').textContent = (document.getElementById('adminChatShrinkage').value || 20) + "%";
+
+      // Admin Stats
+      document.getElementById('adminCountAgents').textContent = totalAgentsCount;
+      document.getElementById('adminCountTel').textContent = Object.keys(rawForecastData['TEL BAQ']).length * 24;
+      document.getElementById('adminCountChat').textContent = Object.keys(rawForecastData['CHAT BAQ FR']).length * 24;
+
+      renderPresenceChart(slots);
+      renderPresenceTable(slots);
+
+      const applyTelDeduction = document.getElementById('adminTelDeductionToggle').checked;
+
+      renderQueueCapacitaire('TEL BAQ', slots, 'adminTelAHT', 'adminTelShrinkage', 'adminTelTargetQS', 'telChart', 'telTableBody', applyTelDeduction, 1);
+      renderQueueCapacitaire('CHAT BAQ FR', slots, 'adminChatAHT', 'adminChatShrinkage', 'adminChatTargetQS', 'chatChart', 'chatTableBody', false, parseFloat(document.getElementById('adminChatConcurrency').value) || 2);
+
+      renderAdminAgentsTable();
+      renderReportingDashboard(slots);
+      renderCouvertureSection(slots);
+    }
+
+    function renderPresenceChart(slots) {
+      const ctx = document.getElementById('presenceChart').getContext('2d');
+      if (presenceChartInstance) presenceChartInstance.destroy();
+
+      presenceChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: slots.map(s => s.label),
+          datasets: [
+            { label: 'TEL BAQ Net', data: slots.map(s => s.activeTel.length), backgroundColor: '#4f46e5', borderRadius: 4 },
+            { label: 'CHAT BAQ Net', data: slots.map(s => s.activeChat.length), backgroundColor: '#06b6d4', borderRadius: 4 },
+            { label: 'Agents en Pause (1h)', data: slots.map(s => s.pausedAgents.length), backgroundColor: '#f59e0b', borderRadius: 4 }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } }
+        }
+      });
+    }
+
+    function renderPresenceTable(slots) {
+      const tbody = document.getElementById('slotsTableBody');
+      tbody.innerHTML = '';
+
+      slots.forEach((slot) => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 transition";
+        const totalAct = slot.activeTel.length + slot.activeChat.length;
+
+        tr.innerHTML = `
+          <td class="py-3 px-4 font-semibold text-slate-700">${slot.label}</td>
+          <td class="py-3 px-4 text-center font-bold text-indigo-700">${slot.activeTel.length}</td>
+          <td class="py-3 px-4 text-center font-bold text-cyan-700">${slot.activeChat.length}</td>
+          <td class="py-3 px-4 text-center"><span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">${totalAct} Net</span></td>
+          <td class="py-3 px-4 text-center"><span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">${slot.pausedAgents.length} en pause</span></td>
+          <td class="py-3 px-4 text-center font-medium text-slate-600">${slot.totalShiftAgents.length}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderQueueCapacitaire(queueKey, slots, idAHT, idShrink, idTargetQS, chartCanvasId, tableBodyId, applyDeduction, concurrency) {
+      const AHT = parseFloat(document.getElementById(idAHT).value) || 240;
+      const shrinkage = (parseFloat(document.getElementById(idShrink).value) || 20) / 100;
+      const targetQS = parseFloat(document.getElementById(idTargetQS).value) || 100;
+
+      const dimData = [];
+
+      for (let h = 0; h < 24; h++) {
+        const volList = rawForecastData[queueKey] && rawForecastData[queueKey][h] ? rawForecastData[queueKey][h] : [0];
+        const avgVol = Math.round(volList.reduce((a, b) => a + b, 0) / Math.max(1, volList.length));
+
+        const rawNetPlanified = queueKey.includes('CHAT') ? slots[h].activeChat.length : slots[h].activeTel.length;
+
+        let adjustedNetPlanified = rawNetPlanified;
+        if (applyDeduction && h >= 9 && h < 18) {
+          adjustedNetPlanified = Math.max(0, rawNetPlanified - 3);
+        }
+
+        const capRes = calcCapacitaire(adjustedNetPlanified, AHT, avgVol, concurrency);
+        const etpNetRequis = Math.ceil(capRes.reqNet);
+        const etpBrutRequis = Math.ceil(etpNetRequis / (1 - shrinkage));
+
+        dimData.push({
+          hour: h,
+          label: slots[h].label,
+          volume: avgVol,
+          rawNetPlanified: rawNetPlanified,
+          adjustedNetPlanified: adjustedNetPlanified,
+          capacity: capRes.capacity,
+          treated: capRes.treated,
+          etpNetRequis: etpNetRequis,
+          etpBrutRequis: etpBrutRequis,
+          qs: capRes.qs.toFixed(1)
+        });
+      }
+
+      // Chart
+      const ctx = document.getElementById(chartCanvasId).getContext('2d');
+      let targetChartInstance = queueKey.includes('CHAT') ? chatChartInstance : telChartInstance;
+      if (targetChartInstance) targetChartInstance.destroy();
+
+      const newChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: dimData.map(d => d.label),
+          datasets: [
+            {
+              type: 'bar',
+              label: 'Volume Confié / Reçu',
+              data: dimData.map(d => d.volume),
+              backgroundColor: 'rgba(239, 68, 68, 0.6)',
+              borderRadius: 4
+            },
+            {
+              type: 'line',
+              label: 'Capacité de Traitement (Flux/h)',
+              data: dimData.map(d => d.capacity),
+              borderColor: '#4f46e5',
+              backgroundColor: 'transparent',
+              borderWidth: 3,
+              tension: 0.2
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'top' } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+
+      if (queueKey.includes('CHAT')) chatChartInstance = newChart;
+      else telChartInstance = newChart;
+
+      // Table
+      const tbody = document.getElementById(tableBodyId);
+      tbody.innerHTML = '';
+
+      dimData.forEach(d => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 transition";
+        const isDeductionHour = applyDeduction && d.hour >= 9 && d.hour < 18;
+
+        tr.innerHTML = `
+          <td class="py-3 px-4 font-semibold text-slate-700">${d.label}</td>
+          <td class="py-3 px-4 text-center font-bold text-rose-600">${d.volume}</td>
+          <td class="py-3 px-4 text-center text-slate-500">${d.rawNetPlanified}</td>
+          <td class="py-3 px-4 text-center font-bold ${isDeductionHour ? 'bg-indigo-50 text-indigo-900' : 'text-slate-800'}">
+            ${d.adjustedNetPlanified} ${isDeductionHour ? '<span class="text-[10px] text-indigo-600 font-normal">(-3)</span>' : ''}
+          </td>
+          <td class="py-3 px-4 text-center font-bold text-indigo-700">${d.capacity}</td>
+          <td class="py-3 px-4 text-center font-medium text-emerald-700">${d.treated}</td>
+          <td class="py-3 px-4 text-center font-semibold text-slate-700">${d.etpNetRequis}</td>
+          <td class="py-3 px-4 text-center font-semibold text-slate-500">${d.etpBrutRequis}</td>
+          <td class="py-3 px-4 text-center font-bold ${d.qs >= targetQS ? 'text-emerald-600' : 'text-rose-600'}">${d.qs}%</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // DASHBOARD / REPORTING
+    function renderReportingDashboard(slots) {
+      const telAHT = parseFloat(document.getElementById('adminTelAHT').value) || 240;
+      const chatAHT = parseFloat(document.getElementById('adminChatAHT').value) || 300;
+      const chatConcurrency = parseFloat(document.getElementById('adminChatConcurrency').value) || 2;
+      const applyTelDeduction = document.getElementById('adminTelDeductionToggle').checked;
+
+      let volTelRec = 0, volTelTreated = 0;
+      let volChatRec = 0, volChatTreated = 0;
+      let totalNetHours = 0;
+
+      const hourlyQsTel = [];
+      const hourlyQsChat = [];
+
+      for (let h = 0; h < 24; h++) {
+        // TEL
+        const volTelList = rawForecastData['TEL BAQ'] && rawForecastData['TEL BAQ'][h] ? rawForecastData['TEL BAQ'][h] : [0];
+        const avgTelVol = Math.round(volTelList.reduce((a, b) => a + b, 0) / Math.max(1, volTelList.length));
+        let netTel = slots[h].activeTel.length;
+        if (applyTelDeduction && h >= 9 && h < 18) netTel = Math.max(0, netTel - 3);
+
+        const capTel = calcCapacitaire(netTel, telAHT, avgTelVol, 1);
+        volTelRec += avgTelVol;
+        volTelTreated += capTel.treated;
+        hourlyQsTel.push(capTel.qs);
+
+        // CHAT
+        const volChatList = rawForecastData['CHAT BAQ FR'] && rawForecastData['CHAT BAQ FR'][h] ? rawForecastData['CHAT BAQ FR'][h] : [0];
+        const avgChatVol = Math.round(volChatList.reduce((a, b) => a + b, 0) / Math.max(1, volChatList.length));
+        let netChat = slots[h].activeChat.length;
+
+        const capChat = calcCapacitaire(netChat, chatAHT, avgChatVol, chatConcurrency);
+        volChatRec += avgChatVol;
+        volChatTreated += capChat.treated;
+        hourlyQsChat.push(capChat.qs);
+
+        // Hours
+        totalNetHours += (slots[h].activeTel.length + slots[h].activeChat.length);
+      }
+
+      const qsTelGlobal = volTelRec > 0 ? (volTelTreated / volTelRec) * 100 : 100;
+      const qsChatGlobal = volChatRec > 0 ? (volChatTreated / volChatRec) * 100 : 100;
+
+      document.getElementById('repQsTel').textContent = qsTelGlobal.toFixed(1) + '%';
+      document.getElementById('repVolTelTreated').textContent = Math.round(volTelTreated);
+      document.getElementById('repVolTelRec').textContent = volTelRec;
+
+      document.getElementById('repQsChat').textContent = qsChatGlobal.toFixed(1) + '%';
+      document.getElementById('repVolChatTreated').textContent = Math.round(volChatTreated);
+      document.getElementById('repVolChatRec').textContent = volChatRec;
+
+      document.getElementById('repTotalHours').textContent = totalNetHours + ' h';
+      document.getElementById('repEtpAvg').textContent = (totalNetHours / 24).toFixed(1);
+
+      // Reporting Pie Chart
+      const pieCtx = document.getElementById('reportingPieChart').getContext('2d');
+      if (reportingPieChartInstance) reportingPieChartInstance.destroy();
+
+      reportingPieChartInstance = new Chart(pieCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['TEL BAQ (Appels)', 'CHAT BAQ (Chats)'],
+          datasets: [{
+            data: [volTelRec, volChatRec],
+            backgroundColor: ['#4f46e5', '#06b6d4']
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      // Reporting Line Chart
+      const lineCtx = document.getElementById('reportingLineChart').getContext('2d');
+      if (reportingLineChartInstance) reportingLineChartInstance.destroy();
+
+      reportingLineChartInstance = new Chart(lineCtx, {
+        type: 'line',
+        data: {
+          labels: slots.map(s => s.label),
+          datasets: [
+            { label: 'QS TEL BAQ (%)', data: hourlyQsTel, borderColor: '#4f46e5', tension: 0.3 },
+            { label: 'QS CHAT BAQ (%)', data: hourlyQsChat, borderColor: '#06b6d4', tension: 0.3 }
+          ]
+        },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100 } } }
+      });
+
+      // Reporting Weekly Table
+      const tbody = document.getElementById('reportingTableBody');
+      tbody.innerHTML = '';
+
+      daysList.forEach(dayName => {
+        let dayTelRec = 0, dayTelTreated = 0, dayChatRec = 0, dayChatTreated = 0;
+        let dayEtpReqTotal = 0;
+
+        for (let h = 0; h < 24; h++) {
+          const dayPres = computePresence(dayName);
+          const slotD = dayPres.slots[h];
+
+          let netTel = slotD.activeTel.length;
+          if (applyTelDeduction && h >= 9 && h < 18) netTel = Math.max(0, netTel - 3);
+
+          const volTel = rawForecastData['TEL BAQ'] && rawForecastData['TEL BAQ'][h] ? (rawForecastData['TEL BAQ'][h][0] || 0) : 0;
+          const capT = calcCapacitaire(netTel, telAHT, volTel, 1);
+          dayTelRec += volTel;
+          dayTelTreated += capT.treated;
+
+          let netChat = slotD.activeChat.length;
+          const volChat = rawForecastData['CHAT BAQ FR'] && rawForecastData['CHAT BAQ FR'][h] ? (rawForecastData['CHAT BAQ FR'][h][0] || 0) : 0;
+          const capC = calcCapacitaire(netChat, chatAHT, volChat, chatConcurrency);
+          dayChatRec += volChat;
+          dayChatTreated += capC.treated;
+
+          dayEtpReqTotal += (capT.reqNet + capC.reqNet);
+        }
+
+        const dQsTel = dayTelRec > 0 ? (dayTelTreated / dayTelRec) * 100 : 100;
+        const dQsChat = dayChatRec > 0 ? (dayChatTreated / dayChatRec) * 100 : 100;
+
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 transition";
+        tr.innerHTML = `
+          <td class="py-3 px-4 font-bold text-slate-800">${dayName}</td>
+          <td class="py-3 px-4 text-center font-medium">${dayTelRec}</td>
+          <td class="py-3 px-4 text-center text-emerald-700 font-semibold">${Math.round(dayTelTreated)}</td>
+          <td class="py-3 px-4 text-center font-bold ${dQsTel >= 95 ? 'text-emerald-600' : 'text-amber-600'}">${dQsTel.toFixed(1)}%</td>
+          <td class="py-3 px-4 text-center font-medium">${dayChatRec}</td>
+          <td class="py-3 px-4 text-center text-emerald-700 font-semibold">${Math.round(dayChatTreated)}</td>
+          <td class="py-3 px-4 text-center font-bold ${dQsChat >= 95 ? 'text-emerald-600' : 'text-amber-600'}">${dQsChat.toFixed(1)}%</td>
+          <td class="py-3 px-4 text-center font-bold text-indigo-700">${Math.ceil(dayEtpReqTotal / 24)} ETP/h</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // SECTION COUVERTURE DE CHARGE
+    function renderCouvertureSection(slots) {
+      const queueKey = couvertureQueueSelect.value;
+      const isChat = queueKey.includes('CHAT');
+
+      const AHT = parseFloat(document.getElementById(isChat ? 'adminChatAHT' : 'adminTelAHT').value) || 240;
+      const concurrency = isChat ? (parseFloat(document.getElementById('adminChatConcurrency').value) || 2) : 1;
+      const applyTelDeduction = !isChat && document.getElementById('adminTelDeductionToggle').checked;
+
+      let totalWorkloadHours = 0;
+      let totalPlannedHours = 0;
+
+      const couvertureData = [];
+
+      for (let h = 0; h < 24; h++) {
+        const volList = rawForecastData[queueKey] && rawForecastData[queueKey][h] ? rawForecastData[queueKey][h] : [0];
+        const avgVol = Math.round(volList.reduce((a, b) => a + b, 0) / Math.max(1, volList.length));
+
+        // Heures de Charge
+        const workloadHours = (avgVol * AHT) / (3600.0 * concurrency);
+
+        // Heures Planifiées Net (1h par ETP Net)
+        let netPlanified = isChat ? slots[h].activeChat.length : slots[h].activeTel.length;
+        if (applyTelDeduction && h >= 9 && h < 18) {
+          netPlanified = Math.max(0, netPlanified - 3);
+        }
+        const plannedHours = parseFloat(netPlanified);
+
+        const gapHours = plannedHours - workloadHours;
+        const coverageRate = workloadHours > 0 ? (plannedHours / workloadHours) * 100 : (plannedHours > 0 ? 100 : 100);
+
+        totalWorkloadHours += workloadHours;
+        totalPlannedHours += plannedHours;
+
+        couvertureData.push({
+          hour: h,
+          label: slots[h].label,
+          volume: avgVol,
+          workloadHours: workloadHours.toFixed(2),
+          plannedHours: plannedHours.toFixed(1),
+          gapHours: gapHours.toFixed(2),
+          coverageRate: coverageRate.toFixed(1)
+        });
+      }
+
+      const globalRate = totalWorkloadHours > 0 ? (totalPlannedHours / totalWorkloadHours) * 100 : 100;
+
+      document.getElementById('covTotalWorkloadHours').textContent = totalWorkloadHours.toFixed(1) + ' h';
+      document.getElementById('covTotalPlannedHours').textContent = totalPlannedHours.toFixed(1) + ' h';
+      document.getElementById('covGlobalRate').textContent = globalRate.toFixed(1) + ' %';
+
+      // Chart
+      const ctx = document.getElementById('couvertureChart').getContext('2d');
+      if (couvertureChartInstance) couvertureChartInstance.destroy();
+
+      couvertureChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: couvertureData.map(d => d.label),
+          datasets: [
+            {
+              type: 'bar',
+              label: 'Heures de Charge Requises',
+              data: couvertureData.map(d => d.workloadHours),
+              backgroundColor: 'rgba(239, 68, 68, 0.6)',
+              borderRadius: 4
+            },
+            {
+              type: 'line',
+              label: 'Heures Planifiées Net',
+              data: couvertureData.map(d => d.plannedHours),
+              borderColor: '#4f46e5',
+              backgroundColor: 'transparent',
+              borderWidth: 3,
+              tension: 0.2
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'top' } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+
+      // Table
+      const tbody = document.getElementById('couvertureTableBody');
+      tbody.innerHTML = '';
+
+      couvertureData.forEach(d => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 transition";
+
+        const gapBadge = parseFloat(d.gapHours) >= 0 
+          ? `<span class="px-2 py-0.5 rounded text-xs font-bold bg-emerald-100 text-emerald-800">+${d.gapHours} h</span>`
+          : `<span class="px-2 py-0.5 rounded text-xs font-bold bg-rose-100 text-rose-800">${d.gapHours} h</span>`;
+
+        tr.innerHTML = `
+          <td class="py-3 px-4 font-semibold text-slate-700">${d.label}</td>
+          <td class="py-3 px-4 text-center font-medium text-slate-600">${d.volume}</td>
+          <td class="py-3 px-4 text-center font-bold text-rose-600">${d.workloadHours} h</td>
+          <td class="py-3 px-4 text-center font-bold text-indigo-700">${d.plannedHours} h</td>
+          <td class="py-3 px-4 text-center">${gapBadge}</td>
+          <td class="py-3 px-4 text-center font-bold ${parseFloat(d.coverageRate) >= 100 ? 'text-emerald-600' : 'text-rose-600'}">${d.coverageRate}%</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderAdminAgentsTable() {
+      const tbody = document.getElementById('adminAgentsTableBody');
+      tbody.innerHTML = '';
+
+      rawAgentsData.forEach(agent => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 transition";
+        tr.innerHTML = `
+          <td class="py-2 px-3 font-semibold text-slate-600">${agent.code || 'N/A'}</td>
+          <td class="py-2 px-3 font-bold text-slate-800">${agent.name}</td>
+          <td class="py-2 px-3">
+            <select onchange="changeAgentActivity(${agent.id}, this.value)" class="bg-slate-100 border border-slate-300 rounded px-2 py-1 text-xs font-semibold text-slate-800">
+              <option value="TEL BAQ" ${agent.activity === 'TEL BAQ' ? 'selected' : ''}>TEL BAQ</option>
+              <option value="CHAT BAQ" ${agent.activity === 'CHAT BAQ' ? 'selected' : ''}>CHAT BAQ</option>
+            </select>
+          </td>
+          <td class="py-2 px-3 text-right">
+            <button onclick="deleteAgent(${agent.id})" class="text-rose-600 hover:text-rose-800 font-semibold text-xs">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function changeAgentActivity(agentId, newActivity) {
+      const agent = rawAgentsData.find(a => a.id === agentId);
+      if (agent) {
+        agent.activity = newActivity;
+        updateUI();
+      }
+    }
+
+    function deleteAgent(agentId) {
+      rawAgentsData = rawAgentsData.filter(a => a.id !== agentId);
+      updateUI();
+    }
+
+    function openAddAgentModal() {
+      const name = prompt("Nom et prénom de l'agent :");
+      if (!name) return;
+      const code = prompt("Code unique / Matricule :", "1000");
+      const activity = confirm("Cliquez sur OK pour TEL BAQ ou Annuler pour CHAT BAQ") ? "TEL BAQ" : "CHAT BAQ";
+
+      const newAgent = {
+        id: Date.now(),
+        code: code,
+        name: name,
+        activity: activity,
+        schedules: {
+          'Lundi 28/09': { start: 540, end: 1080, pause: 840 },
+          'Mardi 29/09': { start: 540, end: 1080, pause: 840 },
+          'Mercredi 30/09': { start: 540, end: 1080, pause: 840 },
+          'Jeudi 01/10': { start: 540, end: 1080, pause: 840 },
+          'Vendredi 02/10': { start: 540, end: 1080, pause: 840 },
+          'Samedi 03/10': { start: null, end: null, pause: null },
+          'Dimanche 04/10': { start: null, end: null, pause: null }
+        }
+      };
+
+      rawAgentsData.push(newAgent);
+      updateUI();
+    }
+  </script>
+</body>
+</html>
