@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Plateforme WFM Planning, Dimensionnement & Supabase</title>
+  <title>Plateforme WFM Planning, Dimensionnement & Reporting</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Chart.js -->
@@ -23,13 +23,13 @@
       <div class="flex items-center gap-3">
         <i class="fa-solid fa-chart-line text-3xl text-indigo-200"></i>
         <div>
-          <h1 class="text-2xl font-bold">Plateforme WFM Planning & Dimensionnement</h1>
-          <p class="text-indigo-200 text-sm">Gestion des Capacités, Supabase & Vercel</p>
+          <h1 class="text-2xl font-bold">Plateforme WFM Planning & Reporting</h1>
+          <p class="text-indigo-200 text-sm">Dimensionnement Capacitaire Traité/Reçu, Supabase & Vercel</p>
         </div>
       </div>
 
       <!-- Navigation Onglets -->
-      <nav class="flex bg-indigo-800/80 p-1 rounded-xl text-xs font-semibold gap-1 flex-wrap justify-center">
+      <nav class="flex bg-indigo-800/80 p-1 rounded-xl text-xs font-semibold gap-1 flex-wrap justify-center relative z-50">
         <button id="tabNavPresence" onclick="switchTab('presence')" class="px-3 py-2 rounded-lg transition bg-white text-indigo-800 shadow cursor-pointer">
           <i class="fa-solid fa-users-gear mr-1.5"></i>Présence
         </button>
@@ -75,8 +75,8 @@
       </div>
 
       <div class="flex items-center gap-3">
-        <span id="dataStatusBadge" class="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-md font-bold flex items-center gap-1.5">
-          <span id="statusDot" class="w-2 h-2 rounded-full bg-amber-500"></span><span id="statusText">Connexion Supabase...</span>
+        <span id="dataStatusBadge" class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-md font-bold flex items-center gap-1.5">
+          <span id="statusDot" class="w-2 h-2 rounded-full bg-emerald-500"></span><span id="statusText">Prêt</span>
         </span>
       </div>
     </section>
@@ -400,8 +400,8 @@
       <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-3 text-amber-800 text-sm">
         <i class="fa-solid fa-cloud-arrow-up text-2xl text-amber-600"></i>
         <div>
-          <h3 class="font-bold">Espace Administrateur & Synchronisation Supabase</h3>
-          <p class="text-xs text-amber-700">Chaque fichier importé est directement enregistré dans Supabase et rendu visible par tous les utilisateurs.</p>
+          <h3 class="font-bold">Espace Administrateur & Alimentation Hebdomadaire</h3>
+          <p class="text-xs text-amber-700">Importez votre fichier Excel pour charger l'intégralité des agents et des prévisions.</p>
         </div>
       </div>
 
@@ -409,7 +409,7 @@
       <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
         <h2 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
           <i class="fa-solid fa-file-excel text-indigo-600"></i>
-          1. Importation du fichier Excel pour une Nouvelle Semaine
+          1. Importation du fichier Excel (Planning & Prévisions)
         </h2>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -423,12 +423,12 @@
               <input type="file" id="fileInputAdmin" accept=".xlsx, .xls, .csv" class="hidden" />
               <i class="fa-solid fa-cloud-arrow-up text-3xl text-indigo-500 mb-2"></i>
               <span class="font-semibold text-indigo-900 text-sm">Glisser-déposer votre fichier Excel ici</span>
-              <span class="text-xs text-slate-500 mt-1">S'enregistre immédiatement dans Supabase</span>
+              <span class="text-xs text-slate-500 mt-1">Accepte TDB Planning S40.xlsx</span>
             </label>
           </div>
 
           <div class="flex flex-col justify-center space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-            <span class="font-bold text-xs text-slate-700 uppercase">Données chargées en base :</span>
+            <span class="font-bold text-xs text-slate-700 uppercase">Données chargées en mémoire :</span>
             <div class="text-xs space-y-1 text-slate-600">
               <div>• Total agents chargés : <span id="adminCountAgents" class="font-bold text-indigo-700">0</span></div>
               <div>• Créneaux TEL BAQ : <span id="adminCountTel" class="font-bold text-indigo-700">0</span> créneaux</div>
@@ -545,7 +545,7 @@
         supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       }
     } catch(err) {
-      console.warn("Supabase client error:", err);
+      console.warn("Client Supabase désactivé temporairement:", err);
     }
 
     let rawAgentsData = [];
@@ -575,15 +575,19 @@
       });
     }
 
-    // NAVIGATION SANS BLOCAGE
+    // NAVIGATION TOTALEMENT INDÉPENDANTE DU RÉSEAU
     function switchTab(tabName) {
       const pages = ['pagePresence', 'pageTel', 'pageChat', 'pageReporting', 'pageCouverture', 'pageAdmin'];
       const btns = ['tabNavPresence', 'tabNavTel', 'tabNavChat', 'tabNavReporting', 'tabNavCouverture', 'tabNavAdmin'];
 
-      pages.forEach(p => document.getElementById(p)?.classList.add('hidden'));
+      pages.forEach(p => {
+        const el = document.getElementById(p);
+        if (el) el.classList.add('hidden');
+      });
+
       btns.forEach(b => {
-        const el = document.getElementById(b);
-        if (el) el.className = "px-3 py-2 rounded-lg transition text-indigo-100 hover:text-white cursor-pointer";
+        const btn = document.getElementById(b);
+        if (btn) btn.className = "px-3 py-2 rounded-lg transition text-indigo-100 hover:text-white cursor-pointer";
       });
 
       if (tabName === 'presence') {
@@ -635,33 +639,33 @@
       return null;
     }
 
-    // CHARGEMENT ET SAUVEGARDE SUPABASE
+    // CHARGEMENT SUPABASE AVEC TIMEOUT DE SÉCURITÉ DE 2 SECONDES
     async function fetchDataFromSupabase(targetWeek = 'S40') {
       const statusText = document.getElementById('statusText');
       const statusDot = document.getElementById('statusDot');
 
       if (!supabase) {
-        if (statusText) statusText.textContent = "Supabase Non initialisé";
+        if (statusText) statusText.textContent = "Prêt (Mode Fichier Local)";
+        if (statusDot) statusDot.className = "w-2 h-2 rounded-full bg-slate-400";
         return;
       }
 
+      if (statusText) statusText.textContent = "Connexion Supabase...";
+
+      const fetchPromise = Promise.all([
+        supabase.from('planning_agents').select('*').eq('semaine', targetWeek),
+        supabase.from('previsions_volumes').select('*').eq('semaine', targetWeek)
+      ]);
+
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Timeout réseau")), 2000)
+      );
+
       try {
-        if (statusText) statusText.textContent = "Chargement Supabase (" + targetWeek + ")...";
+        const [resAgents, resForecast] = await Promise.race([fetchPromise, timeoutPromise]);
 
-        // Fetch Agents
-        const { data: agentsData, error: errA } = await supabase
-          .from('planning_agents')
-          .select('*')
-          .eq('semaine', targetWeek);
-
-        // Fetch Forecasts
-        const { data: forecastData, error: errF } = await supabase
-          .from('previsions_volumes')
-          .select('*')
-          .eq('semaine', targetWeek);
-
-        if (agentsData && agentsData.length > 0) {
-          rawAgentsData = agentsData.map((a, idx) => ({
+        if (resAgents.data && resAgents.data.length > 0) {
+          rawAgentsData = resAgents.data.map((a, idx) => ({
             id: a.id || idx + 1,
             code: a.code_agent,
             name: a.nom_prenom,
@@ -670,9 +674,9 @@
           }));
         }
 
-        if (forecastData && forecastData.length > 0) {
+        if (resForecast.data && resForecast.data.length > 0) {
           rawForecastData = { "TEL BAQ": {}, "CHAT BAQ FR": {} };
-          forecastData.forEach(f => {
+          resForecast.data.forEach(f => {
             const queue = f.file_attente;
             const hour = parseInt(f.heure_creneau.split(':')[0], 10);
             if (!rawForecastData[queue]) rawForecastData[queue] = {};
@@ -685,8 +689,10 @@
         if (statusText) statusText.textContent = "Supabase Synchro (" + targetWeek + ")";
         updateUI();
       } catch (err) {
-        console.error("Erreur de récupération Supabase:", err);
-        if (statusText) statusText.textContent = "Erreur de Connexion";
+        console.warn("Accès Supabase indisponible ou expiré, passage en mode local :", err);
+        if (statusDot) statusDot.className = "w-2 h-2 rounded-full bg-amber-500";
+        if (statusText) statusText.textContent = "Prêt (Mode Local)";
+        updateUI();
       }
     }
 
@@ -709,55 +715,59 @@
             parseForecastSheet(XLSX.utils.sheet_to_json(workbook.Sheets['Besoin en ETP CHAT BAQ'], { header: 1, raw: true }), 'CHAT BAQ FR');
           }
 
-          // ENVOI VERS SUPABASE
           if (supabase) {
-            const statusText = document.getElementById('statusText');
-            if (statusText) statusText.textContent = "Envoi vers Supabase...";
+            try {
+              const statusText = document.getElementById('statusText');
+              if (statusText) statusText.textContent = "Envoi vers Supabase...";
 
-            const agentsToInsert = rawAgentsData.map(a => ({
-              semaine: currentWeek,
-              code_agent: a.code,
-              nom_prenom: a.name,
-              activite: a.activity,
-              schedules: a.schedules
-            }));
+              const agentsToInsert = rawAgentsData.map(a => ({
+                semaine: currentWeek,
+                code_agent: a.code,
+                nom_prenom: a.name,
+                activite: a.activity,
+                schedules: a.schedules
+              }));
 
-            // Insérer également les prévisions
-            const forecastToInsert = [];
-            Object.keys(rawForecastData).forEach(qKey => {
-              Object.keys(rawForecastData[qKey]).forEach(h => {
-                const vol = rawForecastData[qKey][h][0] || 0;
-                forecastToInsert.push({
-                  semaine: currentWeek,
-                  file_attente: qKey,
-                  heure_creneau: `${String(h).padStart(2, '0')}:00:00`,
-                  volume_confie: vol
+              const forecastToInsert = [];
+              Object.keys(rawForecastData).forEach(qKey => {
+                Object.keys(rawForecastData[qKey]).forEach(h => {
+                  const vol = rawForecastData[qKey][h][0] || 0;
+                  forecastToInsert.push({
+                    semaine: currentWeek,
+                    file_attente: qKey,
+                    heure_creneau: `${String(h).padStart(2, '0')}:00:00`,
+                    volume_confie: vol
+                  });
                 });
               });
-            });
 
-            await supabase.from('planning_agents').delete().eq('semaine', currentWeek);
-            await supabase.from('planning_agents').insert(agentsToInsert);
+              await supabase.from('planning_agents').delete().eq('semaine', currentWeek);
+              await supabase.from('planning_agents').insert(agentsToInsert);
 
-            await supabase.from('previsions_volumes').delete().eq('semaine', currentWeek);
-            await supabase.from('previsions_volumes').insert(forecastToInsert);
+              await supabase.from('previsions_volumes').delete().eq('semaine', currentWeek);
+              await supabase.from('previsions_volumes').insert(forecastToInsert);
 
-            alert(`Succès : ${rawAgentsData.length} agents enregistrés dans Supabase pour la Semaine ${currentWeek} !`);
-            fetchDataFromSupabase(currentWeek);
+              alert(`Succès ! ${rawAgentsData.length} agents enregistrés dans Supabase pour la Semaine ${currentWeek}.`);
+              fetchDataFromSupabase(currentWeek);
+            } catch(sErr) {
+              console.warn("Sauvegarde Supabase bloquée, bascule locale :", sErr);
+              alert(`${rawAgentsData.length} agents chargés en mémoire vive localement.`);
+              updateUI();
+            }
           } else {
-            alert(`Succès : ${rawAgentsData.length} agents chargés en mémoire vive localement !`);
+            alert(`${rawAgentsData.length} agents chargés en mémoire vive localement.`);
             updateUI();
           }
 
         } catch (err) {
-          console.error("Erreur d'importation :", err);
+          console.error("Erreur lors de l'importation :", err);
           alert("Erreur lors de la lecture du fichier Excel.");
         }
       };
       reader.readAsArrayBuffer(file);
     }
 
-    // PARSING COMPLET DE TOUS LES AGENTS DU FICHIER EXCEL
+    // PARSING EXCEL COMPLET POUR CAPTURER LES 69 AGENTS
     function parsePlanningSheet(rows) {
       if (!rows || rows.length < 2) return;
 
@@ -782,7 +792,6 @@
 
         const nameStr = String(rawName).trim();
 
-        // Filtrer les en-têtes de colonnes
         if (nameStr.toLowerCase().includes('nom') || nameStr.toLowerCase().includes('prénom') || nameStr.toLowerCase().includes('agent')) {
           continue;
         }
@@ -823,6 +832,7 @@
       }
     }
 
+    // FORMULE CAPACITAIRE TRAITÉ / REÇU
     function calcCapacitaire(netEtp, aht, forecastVol, concurrency = 1) {
       const capacityPerHour = (netEtp * 3600.0 * concurrency) / aht;
       if (forecastVol <= 0) return { capacity: capacityPerHour, treated: 0, qs: 100, reqNet: 0 };
@@ -1416,7 +1426,7 @@
 
     // INITIALISATION
     window.addEventListener('DOMContentLoaded', () => {
-      fetchDataFromSupabase(currentWeekCode);
+      fetchDataFromSupabase('S40');
     });
   </script>
 </body>
