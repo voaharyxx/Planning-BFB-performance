@@ -3,13 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Plateforme WFM Planning, Dimensionnement & Reporting</title>
+  <title>Plateforme WFM Planning, Dimensionnement & Supabase</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- SheetJS (xlsx) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -22,7 +24,7 @@
         <i class="fa-solid fa-chart-line text-3xl text-indigo-200"></i>
         <div>
           <h1 class="text-2xl font-bold">Plateforme WFM Planning & Dimensionnement</h1>
-          <p class="text-indigo-200 text-sm">Gestion des Capacités, Prévisions & Reporting Hebdomadaire</p>
+          <p class="text-indigo-200 text-sm">Gestion des Capacités, Supabase & Vercel</p>
         </div>
       </div>
 
@@ -58,7 +60,7 @@
         <div class="flex items-center gap-2">
           <i class="fa-solid fa-calendar-check text-indigo-600 text-base"></i>
           <span class="font-bold text-slate-700">Semaine :</span>
-          <select id="weekSelect" onchange="changeWeek(this.value)" class="bg-indigo-50 border border-indigo-200 rounded px-3 py-1 font-bold text-indigo-900 focus:outline-none cursor-pointer">
+          <select id="weekSelect" onchange="fetchDataFromSupabase(this.value)" class="bg-indigo-50 border border-indigo-200 rounded px-3 py-1 font-bold text-indigo-900 focus:outline-none cursor-pointer">
             <option value="S40">Semaine S40</option>
           </select>
         </div>
@@ -73,8 +75,8 @@
       </div>
 
       <div class="flex items-center gap-3">
-        <span id="dataStatusBadge" class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-md font-bold flex items-center gap-1.5">
-          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>Prêt pour Importation
+        <span id="dataStatusBadge" class="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-md font-bold flex items-center gap-1.5">
+          <span id="statusDot" class="w-2 h-2 rounded-full bg-amber-500"></span><span id="statusText">Connexion Supabase...</span>
         </span>
       </div>
     </section>
@@ -398,8 +400,8 @@
       <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-3 text-amber-800 text-sm">
         <i class="fa-solid fa-cloud-arrow-up text-2xl text-amber-600"></i>
         <div>
-          <h3 class="font-bold">Espace Administrateur & Alimentation Hebdomadaire</h3>
-          <p class="text-xs text-amber-700">Importez le fichier Excel de n'importe quelle semaine pour charger 100% des agents.</p>
+          <h3 class="font-bold">Espace Administrateur & Synchronisation Supabase</h3>
+          <p class="text-xs text-amber-700">Chaque fichier importé est directement enregistré dans Supabase et rendu visible par tous les utilisateurs.</p>
         </div>
       </div>
 
@@ -407,7 +409,7 @@
       <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
         <h2 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
           <i class="fa-solid fa-file-excel text-indigo-600"></i>
-          1. Importation du fichier Excel (Planning & Prévisions)
+          1. Importation du fichier Excel pour une Nouvelle Semaine
         </h2>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -421,14 +423,14 @@
               <input type="file" id="fileInputAdmin" accept=".xlsx, .xls, .csv" class="hidden" />
               <i class="fa-solid fa-cloud-arrow-up text-3xl text-indigo-500 mb-2"></i>
               <span class="font-semibold text-indigo-900 text-sm">Glisser-déposer votre fichier Excel ici</span>
-              <span class="text-xs text-slate-500 mt-1">Accepte TDB Planning S40.xlsx</span>
+              <span class="text-xs text-slate-500 mt-1">S'enregistre immédiatement dans Supabase</span>
             </label>
           </div>
 
           <div class="flex flex-col justify-center space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-            <span class="font-bold text-xs text-slate-700 uppercase">Aperçu Semaine Active :</span>
+            <span class="font-bold text-xs text-slate-700 uppercase">Données chargées en base :</span>
             <div class="text-xs space-y-1 text-slate-600">
-              <div>• Agents chargés : <span id="adminCountAgents" class="font-bold text-indigo-700">0</span></div>
+              <div>• Total agents chargés : <span id="adminCountAgents" class="font-bold text-indigo-700">0</span></div>
               <div>• Créneaux TEL BAQ : <span id="adminCountTel" class="font-bold text-indigo-700">0</span> créneaux</div>
               <div>• Créneaux CHAT BAQ : <span id="adminCountChat" class="font-bold text-indigo-700">0</span> créneaux</div>
             </div>
@@ -533,8 +535,18 @@
   </main>
 
   <script>
-    let weeksDatabase = JSON.parse(localStorage.getItem('wfm_weeks_db')) || {};
-    let currentWeekCode = "S40";
+    // CONFIGURATION SUPABASE SECURISEE
+    const SUPABASE_URL = 'https://vysarmqjgfnnpetoozbw.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_xwzHkjtP1X-70XT5otBASw_x3sHsYQ8';
+    let supabase = null;
+
+    try {
+      if (window.supabase && typeof window.supabase.createClient === 'function') {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      }
+    } catch(err) {
+      console.warn("Supabase client error:", err);
+    }
 
     let rawAgentsData = [];
     let rawForecastData = { "TEL BAQ": {}, "CHAT BAQ FR": {} };
@@ -550,9 +562,6 @@
 
     const fileInput = document.getElementById('fileInputAdmin');
     const dropZone = document.getElementById('dropZoneAdmin');
-    const daySelect = document.getElementById('daySelect');
-    const weekSelect = document.getElementById('weekSelect');
-    const couvertureQueueSelect = document.getElementById('couvertureQueueSelect');
 
     if (dropZone && fileInput) {
       ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eName => {
@@ -566,7 +575,7 @@
       });
     }
 
-    // NAVIGATION
+    // NAVIGATION SANS BLOCAGE
     function switchTab(tabName) {
       const pages = ['pagePresence', 'pageTel', 'pageChat', 'pageReporting', 'pageCouverture', 'pageAdmin'];
       const btns = ['tabNavPresence', 'tabNavTel', 'tabNavChat', 'tabNavReporting', 'tabNavCouverture', 'tabNavAdmin'];
@@ -599,35 +608,6 @@
       updateUI();
     }
 
-    function changeWeek(weekCode) {
-      currentWeekCode = weekCode;
-      if (weeksDatabase[weekCode]) {
-        rawAgentsData = weeksDatabase[weekCode].agents || [];
-        rawForecastData = weeksDatabase[weekCode].forecast || { "TEL BAQ": {}, "CHAT BAQ FR": {} };
-      }
-      updateUI();
-    }
-
-    function updateWeekDropdown() {
-      const weekSelect = document.getElementById('weekSelect');
-      if (!weekSelect) return;
-      weekSelect.innerHTML = '';
-      const availableWeeks = Object.keys(weeksDatabase);
-
-      if (availableWeeks.length === 0) {
-        weekSelect.innerHTML = '<option value="S40">Aucune semaine chargée (Importez un fichier)</option>';
-        return;
-      }
-
-      availableWeeks.forEach(wCode => {
-        const opt = document.createElement('option');
-        opt.value = wCode;
-        opt.textContent = `Semaine ${wCode}`;
-        if (wCode === currentWeekCode) opt.selected = true;
-        weekSelect.appendChild(opt);
-      });
-    }
-
     function parseTimeToMinutes(val) {
       if (val === null || val === undefined || val === '') return null;
       if (val instanceof Date) {
@@ -655,35 +635,120 @@
       return null;
     }
 
-    function handleFile(file) {
+    // CHARGEMENT ET SAUVEGARDE SUPABASE
+    async function fetchDataFromSupabase(targetWeek = 'S40') {
+      const statusText = document.getElementById('statusText');
+      const statusDot = document.getElementById('statusDot');
+
+      if (!supabase) {
+        if (statusText) statusText.textContent = "Supabase Non initialisé";
+        return;
+      }
+
+      try {
+        if (statusText) statusText.textContent = "Chargement Supabase (" + targetWeek + ")...";
+
+        // Fetch Agents
+        const { data: agentsData, error: errA } = await supabase
+          .from('planning_agents')
+          .select('*')
+          .eq('semaine', targetWeek);
+
+        // Fetch Forecasts
+        const { data: forecastData, error: errF } = await supabase
+          .from('previsions_volumes')
+          .select('*')
+          .eq('semaine', targetWeek);
+
+        if (agentsData && agentsData.length > 0) {
+          rawAgentsData = agentsData.map((a, idx) => ({
+            id: a.id || idx + 1,
+            code: a.code_agent,
+            name: a.nom_prenom,
+            activity: a.activite,
+            schedules: a.schedules || {}
+          }));
+        }
+
+        if (forecastData && forecastData.length > 0) {
+          rawForecastData = { "TEL BAQ": {}, "CHAT BAQ FR": {} };
+          forecastData.forEach(f => {
+            const queue = f.file_attente;
+            const hour = parseInt(f.heure_creneau.split(':')[0], 10);
+            if (!rawForecastData[queue]) rawForecastData[queue] = {};
+            if (!rawForecastData[queue][hour]) rawForecastData[queue][hour] = [];
+            rawForecastData[queue][hour].push(parseFloat(f.volume_confie));
+          });
+        }
+
+        if (statusDot) statusDot.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+        if (statusText) statusText.textContent = "Supabase Synchro (" + targetWeek + ")";
+        updateUI();
+      } catch (err) {
+        console.error("Erreur de récupération Supabase:", err);
+        if (statusText) statusText.textContent = "Erreur de Connexion";
+      }
+    }
+
+    async function handleFile(file) {
       const reader = new FileReader();
-      reader.onload = function (e) {
+      reader.onload = async function (e) {
         try {
           const data = new Uint8Array(e.target.result);
           const workbook = XLSX.read(data, { type: 'array', cellDates: true });
 
-          const newWeekCode = document.getElementById('adminWeekInput')?.value.trim() || 'S40';
-
-          weeksDatabase[newWeekCode] = { agents: [], forecast: { "TEL BAQ": {}, "CHAT BAQ FR": {} } };
+          const currentWeek = document.getElementById('adminWeekInput')?.value.trim() || 'S40';
 
           if (workbook.SheetNames.includes('Planning')) {
-            parsePlanningSheet(XLSX.utils.sheet_to_json(workbook.Sheets['Planning'], { header: 1, raw: true }), newWeekCode);
+            parsePlanningSheet(XLSX.utils.sheet_to_json(workbook.Sheets['Planning'], { header: 1, raw: true }));
           }
           if (workbook.SheetNames.includes('Besoin en ETP TEL BAQ')) {
-            parseForecastSheet(XLSX.utils.sheet_to_json(workbook.Sheets['Besoin en ETP TEL BAQ'], { header: 1, raw: true }), 'TEL BAQ', newWeekCode);
+            parseForecastSheet(XLSX.utils.sheet_to_json(workbook.Sheets['Besoin en ETP TEL BAQ'], { header: 1, raw: true }), 'TEL BAQ');
           }
           if (workbook.SheetNames.includes('Besoin en ETP CHAT BAQ')) {
-            parseForecastSheet(XLSX.utils.sheet_to_json(workbook.Sheets['Besoin en ETP CHAT BAQ'], { header: 1, raw: true }), 'CHAT BAQ FR', newWeekCode);
+            parseForecastSheet(XLSX.utils.sheet_to_json(workbook.Sheets['Besoin en ETP CHAT BAQ'], { header: 1, raw: true }), 'CHAT BAQ FR');
           }
 
-          localStorage.setItem('wfm_weeks_db', JSON.stringify(weeksDatabase));
-          currentWeekCode = newWeekCode;
-          rawAgentsData = weeksDatabase[newWeekCode].agents;
-          rawForecastData = weeksDatabase[newWeekCode].forecast;
+          // ENVOI VERS SUPABASE
+          if (supabase) {
+            const statusText = document.getElementById('statusText');
+            if (statusText) statusText.textContent = "Envoi vers Supabase...";
 
-          updateWeekDropdown();
-          updateUI();
-          alert(`Importation réussie : ${rawAgentsData.length} agents chargés pour la Semaine ${newWeekCode} !`);
+            const agentsToInsert = rawAgentsData.map(a => ({
+              semaine: currentWeek,
+              code_agent: a.code,
+              nom_prenom: a.name,
+              activite: a.activity,
+              schedules: a.schedules
+            }));
+
+            // Insérer également les prévisions
+            const forecastToInsert = [];
+            Object.keys(rawForecastData).forEach(qKey => {
+              Object.keys(rawForecastData[qKey]).forEach(h => {
+                const vol = rawForecastData[qKey][h][0] || 0;
+                forecastToInsert.push({
+                  semaine: currentWeek,
+                  file_attente: qKey,
+                  heure_creneau: `${String(h).padStart(2, '0')}:00:00`,
+                  volume_confie: vol
+                });
+              });
+            });
+
+            await supabase.from('planning_agents').delete().eq('semaine', currentWeek);
+            await supabase.from('planning_agents').insert(agentsToInsert);
+
+            await supabase.from('previsions_volumes').delete().eq('semaine', currentWeek);
+            await supabase.from('previsions_volumes').insert(forecastToInsert);
+
+            alert(`Succès : ${rawAgentsData.length} agents enregistrés dans Supabase pour la Semaine ${currentWeek} !`);
+            fetchDataFromSupabase(currentWeek);
+          } else {
+            alert(`Succès : ${rawAgentsData.length} agents chargés en mémoire vive localement !`);
+            updateUI();
+          }
+
         } catch (err) {
           console.error("Erreur d'importation :", err);
           alert("Erreur lors de la lecture du fichier Excel.");
@@ -692,8 +757,8 @@
       reader.readAsArrayBuffer(file);
     }
 
-    // PARSING COMPLET SANS LIMITATION DE LIGNES
-    function parsePlanningSheet(rows, weekCode) {
+    // PARSING COMPLET DE TOUS LES AGENTS DU FICHIER EXCEL
+    function parsePlanningSheet(rows) {
       if (!rows || rows.length < 2) return;
 
       const daysMapping = [
@@ -706,7 +771,7 @@
         { name: 'Dimanche 04/10', startCol: 28, endCol: 29, pauseCol: 30 }
       ];
 
-      const agentsList = [];
+      rawAgentsData = [];
 
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
@@ -717,7 +782,7 @@
 
         const nameStr = String(rawName).trim();
 
-        // Ignorer en-têtes
+        // Filtrer les en-têtes de colonnes
         if (nameStr.toLowerCase().includes('nom') || nameStr.toLowerCase().includes('prénom') || nameStr.toLowerCase().includes('agent')) {
           continue;
         }
@@ -736,15 +801,13 @@
           agent.schedules[day.name] = { start: st, end: et, pause: pt };
         });
 
-        agentsList.push(agent);
+        rawAgentsData.push(agent);
       }
-
-      weeksDatabase[weekCode].agents = agentsList;
     }
 
-    function parseForecastSheet(rows, queueKey, weekCode) {
+    function parseForecastSheet(rows, queueKey) {
       if (!rows || rows.length < 2) return;
-      const forecastObj = {};
+      rawForecastData[queueKey] = {};
 
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
@@ -754,11 +817,10 @@
 
         if (startTime !== null) {
           const hour = Math.floor(startTime / 60);
-          if (!forecastObj[hour]) forecastObj[hour] = [];
-          forecastObj[hour].push(vol);
+          if (!rawForecastData[queueKey][hour]) rawForecastData[queueKey][hour] = [];
+          rawForecastData[queueKey][hour].push(vol);
         }
       }
-      weeksDatabase[weekCode].forecast[queueKey] = forecastObj;
     }
 
     function calcCapacitaire(netEtp, aht, forecastVol, concurrency = 1) {
@@ -1354,8 +1416,7 @@
 
     // INITIALISATION
     window.addEventListener('DOMContentLoaded', () => {
-      updateWeekDropdown();
-      updateUI();
+      fetchDataFromSupabase(currentWeekCode);
     });
   </script>
 </body>
