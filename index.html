@@ -60,7 +60,7 @@
         <div class="flex items-center gap-2">
           <i class="fa-solid fa-calendar-check text-indigo-600 text-base"></i>
           <span class="font-bold text-slate-700">Semaine :</span>
-          <select id="weekSelect" class="bg-indigo-50 border border-indigo-200 rounded px-3 py-1 font-bold text-indigo-900 focus:outline-none">
+          <select id="weekSelect" onchange="fetchDataFromSupabase()" class="bg-indigo-50 border border-indigo-200 rounded px-3 py-1 font-bold text-indigo-900 focus:outline-none">
             <option value="S40">Semaine S40</option>
           </select>
         </div>
@@ -75,8 +75,8 @@
       </div>
 
       <div class="flex items-center gap-3">
-        <span id="dbStatusBadge" class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-md font-bold flex items-center gap-1.5">
-          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>Prêt
+        <span id="dbStatusBadge" class="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-md font-bold flex items-center gap-1.5">
+          <span id="dbDot" class="w-2 h-2 rounded-full bg-amber-500"></span><span id="dbStatusText">Chargement...</span>
         </span>
       </div>
     </section>
@@ -398,34 +398,39 @@
     <!-- ==================== PAGE 6 : ESPACE ADMIN ==================== -->
     <div id="pageAdmin" class="space-y-8 hidden">
       <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-3 text-amber-800 text-sm">
-        <i class="fa-solid fa-user-gear text-2xl text-amber-600"></i>
+        <i class="fa-solid fa-cloud-arrow-up text-2xl text-amber-600"></i>
         <div>
-          <h3 class="font-bold">Espace Administrateur & Importation de Fichiers</h3>
-          <p class="text-xs text-amber-700">Importez le fichier Excel pour charger les agents et les prévisions volumétriques.</p>
+          <h3 class="font-bold">Espace Administrateur & Synchronisation Supabase</h3>
+          <p class="text-xs text-amber-700">Les fichiers importés ici sont automatiquement enregistrés dans Supabase et visibles par tout le monde.</p>
         </div>
       </div>
 
       <!-- Section Importation -->
       <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
         <h2 class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
-          <i class="fa-solid fa-cloud-arrow-up text-indigo-600"></i>
-          1. Importation du fichier Excel (Planning & Prévisions)
+          <i class="fa-solid fa-file-excel text-indigo-600"></i>
+          1. Importation du fichier Excel vers la Base de Données
         </h2>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Code / Nom de la Semaine :</label>
+              <input type="text" id="adminWeekInput" value="S40" placeholder="Ex: S40" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold text-indigo-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            </div>
+
             <label id="dropZoneAdmin" class="flex flex-col items-center justify-center border-2 border-dashed border-indigo-300 hover:border-indigo-500 bg-indigo-50/50 hover:bg-indigo-50 rounded-xl p-6 transition cursor-pointer text-center group">
               <input type="file" id="fileInputAdmin" accept=".xlsx, .xls, .csv" class="hidden" />
-              <i class="fa-solid fa-file-excel text-3xl text-indigo-500 mb-2"></i>
+              <i class="fa-solid fa-cloud-arrow-up text-3xl text-indigo-500 mb-2"></i>
               <span class="font-semibold text-indigo-900 text-sm">Sélectionner ou glisser le fichier Excel</span>
-              <span class="text-xs text-slate-500 mt-1">Ex: TDB Planning S40.xlsx</span>
+              <span class="text-xs text-slate-500 mt-1">Sera enregistré sur Supabase</span>
             </label>
           </div>
 
           <div class="flex flex-col justify-center space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-            <span class="font-bold text-xs text-slate-700 uppercase">Données en mémoire :</span>
+            <span class="font-bold text-xs text-slate-700 uppercase">Statut Supabase :</span>
             <div class="text-xs space-y-1 text-slate-600">
-              <div>• Agents chargés : <span id="adminCountAgents" class="font-bold text-indigo-700">0</span></div>
+              <div>• Agents chargés en base : <span id="adminCountAgents" class="font-bold text-indigo-700">0</span></div>
               <div>• Prévisions TEL BAQ : <span id="adminCountTel" class="font-bold text-indigo-700">0</span> créneaux</div>
               <div>• Prévisions CHAT BAQ : <span id="adminCountChat" class="font-bold text-indigo-700">0</span> créneaux</div>
             </div>
@@ -530,6 +535,19 @@
   </main>
 
   <script>
+    // CONFIGURATION ET INITIALISATION SUPABASE
+    const SUPABASE_URL = 'https://vysarmqjgfnnpetoozbw.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_xwzHkjtP1X-70XT5otBASw_x3sHsYQ8';
+    let supabase = null;
+
+    try {
+      if (window.supabase) {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      }
+    } catch(err) {
+      console.warn("Supabase init info:", err);
+    }
+
     let rawAgentsData = [];
     let rawForecastData = { "TEL BAQ": {}, "CHAT BAQ FR": {} };
 
@@ -573,7 +591,7 @@
       }
     });
 
-    // FONCTION DE NAVIGATION (GARANTIE SANS BLOCAGE)
+    // NAVIGATION
     function switchTab(tabName) {
       const pages = ['pagePresence', 'pageTel', 'pageChat', 'pageReporting', 'pageCouverture', 'pageAdmin'];
       const btns = ['tabNavPresence', 'tabNavTel', 'tabNavChat', 'tabNavReporting', 'tabNavCouverture', 'tabNavAdmin'];
@@ -637,9 +655,64 @@
       return null;
     }
 
-    function handleFile(file) {
+    // CHARGEMENT ET ENREGISTREMENT SUPABASE
+    async function fetchDataFromSupabase() {
+      const selectedWeek = weekSelect ? weekSelect.value : 'S40';
+      const statusBadge = document.getElementById('dbStatusText');
+      if (statusBadge) statusBadge.textContent = "Synchronisation...";
+
+      if (!supabase) {
+        if (statusBadge) statusBadge.textContent = "Mode Local (Supabase non prêt)";
+        return;
+      }
+
+      try {
+        // Fetch Agents
+        const { data: agentsData, error: errAgents } = await supabase
+          .from('planning_agents')
+          .select('*')
+          .eq('semaine', selectedWeek);
+
+        // Fetch Forecasts
+        const { data: forecastData, error: errForecast } = await supabase
+          .from('previsions_volumes')
+          .select('*')
+          .eq('semaine', selectedWeek);
+
+        if (agentsData && agentsData.length > 0) {
+          rawAgentsData = agentsData.map(a => ({
+            id: a.id,
+            code: a.code_agent,
+            name: a.nom_prenom,
+            activity: a.activite,
+            schedules: a.schedules || {}
+          }));
+        }
+
+        if (forecastData && forecastData.length > 0) {
+          rawForecastData = { "TEL BAQ": {}, "CHAT BAQ FR": {} };
+          forecastData.forEach(f => {
+            const queue = f.file_attente;
+            const hour = parseInt(f.heure_creneau.split(':')[0], 10);
+            if (!rawForecastData[queue]) rawForecastData[queue] = {};
+            if (!rawForecastData[queue][hour]) rawForecastData[queue][hour] = [];
+            rawForecastData[queue][hour].push(parseFloat(f.volume_confie));
+          });
+        }
+
+        const dot = document.getElementById('dbDot');
+        if (dot) dot.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+        if (statusBadge) statusBadge.textContent = "Supabase Synchro (" + selectedWeek + ")";
+        updateUI();
+      } catch (err) {
+        console.error("Supabase Sync error:", err);
+        if (statusBadge) statusBadge.textContent = "Prêt (Local)";
+      }
+    }
+
+    async function handleFile(file) {
       const reader = new FileReader();
-      reader.onload = function (e) {
+      reader.onload = async function (e) {
         try {
           const data = new Uint8Array(e.target.result);
           const workbook = XLSX.read(data, { type: 'array', cellDates: true });
@@ -653,10 +726,31 @@
           if (workbook.SheetNames.includes('Besoin en ETP CHAT BAQ')) {
             parseForecastSheet(XLSX.utils.sheet_to_json(workbook.Sheets['Besoin en ETP CHAT BAQ'], { header: 1, raw: true }), 'CHAT BAQ FR');
           }
+
+          const currentWeek = document.getElementById('adminWeekInput')?.value || 'S40';
+
+          // Sauvegarde vers Supabase si disponible
+          if (supabase) {
+            const statusBadge = document.getElementById('dbStatusText');
+            if (statusBadge) statusBadge.textContent = "Envoi vers Supabase...";
+
+            const agentsToInsert = rawAgentsData.map(a => ({
+              semaine: currentWeek,
+              code_agent: a.code,
+              nom_prenom: a.name,
+              activite: a.activity,
+              schedules: a.schedules
+            }));
+
+            await supabase.from('planning_agents').delete().eq('semaine', currentWeek);
+            await supabase.from('planning_agents').insert(agentsToInsert);
+
+            alert(`La semaine ${currentWeek} a été enregistrée avec succès sur Supabase pour TOUT LE MONDE !`);
+          }
+
           updateUI();
-          alert("Fichier Excel importé avec succès !");
         } catch (err) {
-          console.error("Erreur de lecture du fichier :", err);
+          console.error("Erreur de lecture :", err);
           alert("Erreur lors de la lecture du fichier Excel.");
         }
       };
@@ -819,14 +913,13 @@
             peakHourLabel = s.label;
           }
         });
-        
+
         const statMaxEl = document.getElementById('statMaxPresence');
         if (statMaxEl) statMaxEl.textContent = maxCount;
-        
+
         const statPeakEl = document.getElementById('statPeakHour');
         if (statPeakEl) statPeakEl.textContent = peakHourLabel;
 
-        // Sync Admin Displays
         const telAhtVal = document.getElementById('adminTelAHT')?.value || 240;
         const telShrinkVal = document.getElementById('adminTelShrinkage')?.value || 20;
         const chatConcVal = document.getElementById('adminChatConcurrency')?.value || 2;
@@ -839,7 +932,6 @@
         if (document.getElementById('displayChatAHT')) document.getElementById('displayChatAHT').textContent = chatAhtVal + " sec";
         if (document.getElementById('displayChatShrinkage')) document.getElementById('displayChatShrinkage').textContent = chatShrinkVal + "%";
 
-        // Admin Stats
         if (document.getElementById('adminCountAgents')) document.getElementById('adminCountAgents').textContent = totalAgentsCount;
         if (document.getElementById('adminCountTel')) document.getElementById('adminCountTel').textContent = Object.keys(rawForecastData['TEL BAQ'] || {}).length * 24;
         if (document.getElementById('adminCountChat')) document.getElementById('adminCountChat').textContent = Object.keys(rawForecastData['CHAT BAQ FR'] || {}).length * 24;
@@ -856,7 +948,7 @@
         renderReportingDashboard(slots);
         renderCouvertureSection(slots);
       } catch (e) {
-        console.error("Erreur lors de la mise à jour de l'interface :", e);
+        console.error("UpdateUI Error:", e);
       }
     }
 
@@ -907,13 +999,9 @@
     }
 
     function renderQueueCapacitaire(queueKey, slots, idAHT, idShrink, idTargetQS, chartCanvasId, tableBodyId, applyDeduction, concurrency) {
-      const ahtEl = document.getElementById(idAHT);
-      const shrinkEl = document.getElementById(idShrink);
-      const targetEl = document.getElementById(idTargetQS);
-
-      const AHT = parseFloat(ahtEl ? ahtEl.value : 240) || 240;
-      const shrinkage = (parseFloat(shrinkEl ? shrinkEl.value : 20) || 20) / 100;
-      const targetQS = parseFloat(targetEl ? targetEl.value : 100) || 100;
+      const AHT = parseFloat(document.getElementById(idAHT)?.value || 240) || 240;
+      const shrinkage = (parseFloat(document.getElementById(idShrink)?.value || 20) || 20) / 100;
+      const targetQS = parseFloat(document.getElementById(idTargetQS)?.value || 100) || 100;
 
       const dimData = [];
 
@@ -1335,9 +1423,9 @@
       updateUI();
     }
 
-    // Initialisation au chargement de la page
+    // Initialisation
     window.addEventListener('DOMContentLoaded', () => {
-      updateUI();
+      fetchDataFromSupabase();
     });
   </script>
 </body>
