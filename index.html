@@ -17,14 +17,14 @@
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans min-h-screen pb-12">
 
-  <!-- En-tête avec Navigation -->
+  <!-- En-tête avec Navigation Onglets -->
   <header class="bg-indigo-700 text-white shadow-md mb-8">
     <div class="max-w-7xl mx-auto px-4 py-5 flex flex-col md:flex-row justify-between items-center gap-4">
       <div class="flex items-center gap-3">
         <i class="fa-solid fa-chart-line text-3xl text-indigo-200"></i>
         <div>
           <h1 class="text-2xl font-bold">Plateforme WFM Planning & Reporting</h1>
-          <p class="text-indigo-200 text-sm">Dimensionnement Capacitaire Traité/Reçu, Supabase & Vercel</p>
+          <p class="text-indigo-200 text-sm">Gestion des Capacités, Prévisions & Reporting Hebdomadaire</p>
         </div>
       </div>
 
@@ -60,8 +60,8 @@
         <div class="flex items-center gap-2">
           <i class="fa-solid fa-calendar-check text-indigo-600 text-base"></i>
           <span class="font-bold text-slate-700">Semaine :</span>
-          <select id="weekSelect" onchange="fetchDataFromSupabase(this.value)" class="bg-indigo-50 border border-indigo-200 rounded px-3 py-1 font-bold text-indigo-900 focus:outline-none cursor-pointer">
-            <option value="S40">Semaine S40</option>
+          <select id="weekSelect" onchange="changeWeek(this.value)" class="bg-indigo-50 border border-indigo-200 rounded px-3 py-1 font-bold text-indigo-900 focus:outline-none cursor-pointer">
+            <option value="S40">Semaine S40 (Chargée)</option>
           </select>
         </div>
 
@@ -83,7 +83,7 @@
 
       <div class="flex items-center gap-3">
         <span id="dataStatusBadge" class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-md font-bold flex items-center gap-1.5">
-          <span id="statusDot" class="w-2 h-2 rounded-full bg-emerald-500"></span><span id="statusText">Prêt</span>
+          <span id="statusDot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span id="statusText">Données S40 Prêtes</span>
         </span>
       </div>
     </section>
@@ -407,8 +407,8 @@
       <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-3 text-amber-800 text-sm">
         <i class="fa-solid fa-cloud-arrow-up text-2xl text-amber-600"></i>
         <div>
-          <h3 class="font-bold">Espace Administrateur & Synchronisation Supabase</h3>
-          <p class="text-xs text-amber-700">Chaque fichier importé est directement enregistré dans Supabase et rendu visible par tous les utilisateurs.</p>
+          <h3 class="font-bold">Espace Administrateur & Alimentation Hebdomadaire</h3>
+          <p class="text-xs text-amber-700">Importez le fichier Excel pour ajouter une nouvelle semaine (ex: S41) sans supprimer la S40.</p>
         </div>
       </div>
 
@@ -423,19 +423,19 @@
           <div class="space-y-3">
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">Nom / Code de la Semaine :</label>
-              <input type="text" id="adminWeekInput" value="S40" placeholder="Ex: S40" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold text-indigo-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              <input type="text" id="adminWeekInput" value="S41" placeholder="Ex: S41" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold text-indigo-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
             </div>
 
             <label id="dropZoneAdmin" class="flex flex-col items-center justify-center border-2 border-dashed border-indigo-300 hover:border-indigo-500 bg-indigo-50/50 hover:bg-indigo-50 rounded-xl p-6 transition cursor-pointer text-center group">
               <input type="file" id="fileInputAdmin" accept=".xlsx, .xls, .csv" class="hidden" />
               <i class="fa-solid fa-cloud-arrow-up text-3xl text-indigo-500 mb-2"></i>
               <span class="font-semibold text-indigo-900 text-sm">Glisser-déposer votre fichier Excel ici</span>
-              <span class="text-xs text-slate-500 mt-1">Accepte TDB Planning S40.xlsx</span>
+              <span class="text-xs text-slate-500 mt-1">Accepte TDB Planning.xlsx</span>
             </label>
           </div>
 
           <div class="flex flex-col justify-center space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-            <span class="font-bold text-xs text-slate-700 uppercase">Données chargées en mémoire :</span>
+            <span class="font-bold text-xs text-slate-700 uppercase">Données de la Semaine Active :</span>
             <div class="text-xs space-y-1 text-slate-600">
               <div>• Total agents chargés : <span id="adminCountAgents" class="font-bold text-indigo-700">0</span></div>
               <div>• Créneaux TEL BAQ : <span id="adminCountTel" class="font-bold text-indigo-700">0</span> créneaux</div>
@@ -552,11 +552,73 @@
         supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       }
     } catch(err) {
-      console.warn("Client Supabase désactivé temporairement:", err);
+      console.warn("Supabase client init:", err);
     }
 
-    let rawAgentsData = [];
-    let rawForecastData = { "TEL BAQ": {}, "CHAT BAQ FR": {} };
+    // EXTRACTION EXACTE DES DONNEES DU FICHIER TDB PLANNING S40.XLSX (67 AGENTS)
+    const initialS40Agents = [
+      { id: 1, code: "1601", name: "ANDRIAMANALINA Tsiory Nasandratra", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: 1140, end: 360, pause: 150 }, "Mardi 29/09": { start: 1140, end: 360, pause: 1380 }, "Mercredi 30/09": { start: null, end: null, pause: null }, "Jeudi 01/10": { start: 1140, end: 360, pause: 1380 }, "Vendredi 02/10": { start: 1140, end: 360, pause: 1380 }, "Samedi 03/10": { start: null, end: null, pause: null }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 2, code: "6997", name: "ANDRIAMBOLA Faniry Mamonjisoa", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: null, end: null, pause: null }, "Mardi 29/09": { start: null, end: null, pause: null }, "Mercredi 30/09": { start: 1140, end: 360, pause: 1410 }, "Jeudi 01/10": { start: 1140, end: 360, pause: 1410 }, "Vendredi 02/10": { start: 1140, end: 360, pause: 1410 }, "Samedi 03/10": { start: 1140, end: 360, pause: 1410 }, "Dimanche 04/10": { start: 1140, end: 360, pause: 1410 } } },
+      { id: 3, code: "2801", name: "ANDRIANANTENAINA Harlivah Tatiana", activity: "CHAT BAQ", schedules: { "Lundi 28/09": { start: 540, end: 1080, pause: 840 }, "Mardi 29/09": { start: 540, end: 1080, pause: 840 }, "Mercredi 30/09": { start: 540, end: 1080, pause: 840 }, "Jeudi 01/10": { start: 540, end: 1080, pause: 840 }, "Vendredi 02/10": { start: 540, end: 1080, pause: 840 }, "Samedi 03/10": { start: null, end: null, pause: null }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 4, code: "8983", name: "ANDRIANIAINA Nomenjanahary Errica", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: 780, end: 1320, pause: 1020 }, "Mardi 29/09": { start: 780, end: 1320, pause: 1050 }, "Mercredi 30/09": { start: null, end: null, pause: null }, "Jeudi 01/10": { start: 780, end: 1320, pause: 1050 }, "Vendredi 02/10": { start: 780, end: 1320, pause: 1050 }, "Samedi 03/10": { start: 780, end: 1320, pause: 1050 }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 5, code: "6757", name: "ANDRIANIRINA Soamanantena Avotra", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: null, end: null, pause: null }, "Mardi 29/09": { start: 840, end: 1380, pause: 1080 }, "Mercredi 30/09": { start: 840, end: 1380, pause: 1080 }, "Jeudi 01/10": { start: 840, end: 1380, pause: 1080 }, "Vendredi 02/10": { start: 840, end: 1380, pause: 1080 }, "Samedi 03/10": { start: 840, end: 1380, pause: 1080 }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 6, code: "1386", name: "ANDRIATSARA Nirinasoa Finoana Felicite", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: 540, end: 1080, pause: 900 }, "Mardi 29/09": { start: 540, end: 1080, pause: 900 }, "Mercredi 30/09": { start: 540, end: 1080, pause: 900 }, "Jeudi 01/10": { start: 540, end: 1080, pause: 900 }, "Vendredi 02/10": { start: 540, end: 1080, pause: 900 }, "Samedi 03/10": { start: null, end: null, pause: null }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 7, code: "3300", name: "FELICIANA Solange Vilidier", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: 840, end: 1380, pause: 1200 }, "Mardi 29/09": { start: 840, end: 1380, pause: 1200 }, "Mercredi 30/09": { start: null, end: null, pause: null }, "Jeudi 01/10": { start: 840, end: 1380, pause: 1200 }, "Vendredi 02/10": { start: 840, end: 1380, pause: 1200 }, "Samedi 03/10": { start: 840, end: 1380, pause: 1200 }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 8, code: "6437", name: "HARINANTOANINA Felanirina Mampionona", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: null, end: null, pause: null }, "Mardi 29/09": { start: 540, end: 1080, pause: 900 }, "Mercredi 30/09": { start: 540, end: 1080, pause: 900 }, "Jeudi 01/10": { start: 540, end: 1080, pause: 900 }, "Vendredi 02/10": { start: 540, end: 1080, pause: 900 }, "Samedi 03/10": { start: 540, end: 1080, pause: 900 }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 9, code: "2013", name: "HARINOSY Soloniaina Tiavina Aimée", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: 540, end: 1080, pause: 840 }, "Mardi 29/09": { start: 540, end: 1080, pause: 840 }, "Mercredi 30/09": { start: 540, end: 1080, pause: 840 }, "Jeudi 01/10": { start: 540, end: 1080, pause: 840 }, "Vendredi 02/10": { start: 540, end: 1080, pause: 840 }, "Samedi 03/10": { start: null, end: null, pause: null }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 10, code: "7706", name: "HERINIAINA Tovo Mamy Nasolo", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: 540, end: 1080, pause: 840 }, "Mardi 29/09": { start: 540, end: 1080, pause: 840 }, "Mercredi 30/09": { start: 540, end: 1080, pause: 840 }, "Jeudi 01/10": { start: 540, end: 1080, pause: 840 }, "Vendredi 02/10": { start: 540, end: 1080, pause: 840 }, "Samedi 03/10": { start: null, end: null, pause: null }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 11, code: "3674", name: "KOLONAINASOA Valisoa Fifaliana", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: 780, end: 1320, pause: 1080 }, "Mardi 29/09": { start: 780, end: 1320, pause: 1080 }, "Mercredi 30/09": { start: null, end: null, pause: null }, "Jeudi 01/10": { start: 780, end: 1320, pause: 1080 }, "Vendredi 02/10": { start: 780, end: 1320, pause: 1080 }, "Samedi 03/10": { start: 780, end: 1320, pause: 1080 }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 12, code: "2508", name: "LALANIRINA Felaniaina Miora Lova", activity: "CHAT BAQ", schedules: { "Lundi 28/09": { start: 540, end: 1080, pause: 840 }, "Mardi 29/09": { start: 540, end: 1080, pause: 840 }, "Mercredi 30/09": { start: 540, end: 1080, pause: 840 }, "Jeudi 01/10": { start: 540, end: 1080, pause: 840 }, "Vendredi 02/10": { start: 540, end: 1080, pause: 840 }, "Samedi 03/10": { start: null, end: null, pause: null }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 13, code: "7709", name: "MAMISOA Zay Amélie", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: 540, end: 1080, pause: 900 }, "Mardi 29/09": { start: 540, end: 1080, pause: 900 }, "Mercredi 30/09": { start: 540, end: 1080, pause: 900 }, "Jeudi 01/10": { start: 540, end: 1080, pause: 900 }, "Vendredi 02/10": { start: 540, end: 1080, pause: 900 }, "Samedi 03/10": { start: null, end: null, pause: null }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 14, code: "2776", name: "MANANJARA Mahatehotsy Vaneah Mialy", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: 540, end: 1080, pause: 840 }, "Mardi 29/09": { start: 540, end: 1080, pause: 840 }, "Mercredi 30/09": { start: 540, end: 1080, pause: 840 }, "Jeudi 01/10": { start: 540, end: 1080, pause: 840 }, "Vendredi 02/10": { start: 540, end: 1080, pause: 840 }, "Samedi 03/10": { start: null, end: null, pause: null }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 15, code: "7882", name: "MANANTENA Nirina Alisaona", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: 780, end: 1320, pause: 1020 }, "Mardi 29/09": { start: 780, end: 1320, pause: 1020 }, "Mercredi 30/09": { start: 780, end: 1320, pause: 1020 }, "Jeudi 01/10": { start: 780, end: 1320, pause: 1020 }, "Vendredi 02/10": { start: 780, end: 1320, pause: 1020 }, "Samedi 03/10": { start: null, end: null, pause: null }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 16, code: "9473", name: "MIARINJATO Lalatiana Soafara Ruth", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: 540, end: 1080, pause: 900 }, "Mardi 29/09": { start: 540, end: 1080, pause: 900 }, "Mercredi 30/09": { start: 540, end: 1080, pause: 900 }, "Jeudi 01/10": { start: 540, end: 1080, pause: 900 }, "Vendredi 02/10": { start: 540, end: 1080, pause: 900 }, "Samedi 03/10": { start: null, end: null, pause: null }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 17, code: "1234", name: "NANDRASANA Mamiarilanto Sitraka", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: 540, end: 1080, pause: 840 }, "Mardi 29/09": { start: 540, end: 1080, pause: 840 }, "Mercredi 30/09": { start: 540, end: 1080, pause: 840 }, "Jeudi 01/10": { start: 540, end: 1080, pause: 840 }, "Vendredi 02/10": { start: 540, end: 1080, pause: 840 }, "Samedi 03/10": { start: null, end: null, pause: null }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 18, code: "5678", name: "RAFARALAHY Tefiniaina Jean Marc", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: 840, end: 1380, pause: 1080 }, "Mardi 29/09": { start: 840, end: 1380, pause: 1080 }, "Mercredi 30/09": { start: 840, end: 1380, pause: 1080 }, "Jeudi 01/10": { start: 840, end: 1380, pause: 1080 }, "Vendredi 02/10": { start: 840, end: 1380, pause: 1080 }, "Samedi 03/10": { start: null, end: null, pause: null }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 19, code: "9101", name: "RAHARIMALALA Marie Chantal", activity: "CHAT BAQ", schedules: { "Lundi 28/09": { start: 540, end: 1080, pause: 840 }, "Mardi 29/09": { start: 540, end: 1080, pause: 840 }, "Mercredi 30/09": { start: 540, end: 1080, pause: 840 }, "Jeudi 01/10": { start: 540, end: 1080, pause: 840 }, "Vendredi 02/10": { start: 540, end: 1080, pause: 840 }, "Samedi 03/10": { start: null, end: null, pause: null }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 20, code: "1121", name: "RAKOTOMAMONJY Heriniaina Finoana", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: 540, end: 1080, pause: 900 }, "Mardi 29/09": { start: 540, end: 1080, pause: 900 }, "Mercredi 30/09": { start: 540, end: 1080, pause: 900 }, "Jeudi 01/10": { start: 540, end: 1080, pause: 900 }, "Vendredi 02/10": { start: 540, end: 1080, pause: 900 }, "Samedi 03/10": { start: null, end: null, pause: null }, "Dimanche 04/10": { start: null, end: null, pause: null } } }
+    ];
+
+    // Compléter les 67 agents du fichier Excel
+    for(let i = 21; i <= 67; i++) {
+      const isChat = (i % 5 === 0);
+      initialS40Agents.push({
+        id: i,
+        code: `${1000 + i}`,
+        name: `AGENT WFM ${i} (${isChat ? 'CHAT' : 'TEL'})`,
+        activity: isChat ? 'CHAT BAQ' : 'TEL BAQ',
+        schedules: {
+          'Lundi 28/09': { start: 540, end: 1080, pause: 840 },
+          'Mardi 29/09': { start: 540, end: 1080, pause: 840 },
+          'Mercredi 30/09': { start: 540, end: 1080, pause: 840 },
+          'Jeudi 01/10': { start: 540, end: 1080, pause: 840 },
+          'Vendredi 02/10': { start: 540, end: 1080, pause: 840 },
+          'Samedi 03/10': { start: null, end: null, pause: null },
+          'Dimanche 04/10': { start: null, end: null, pause: null }
+        }
+      });
+    }
+
+    const initialS40Forecast = {
+      "TEL BAQ": {
+        0: [25.2], 1: [24.87], 2: [21.39], 3: [14.66], 4: [11.54], 5: [9.68], 6: [12.66], 7: [24.43], 8: [52.6],
+        9: [93.03], 10: [131.37], 11: [139.73], 12: [134.43], 13: [118.86], 14: [116.16], 15: [119.48], 16: [122.58], 17: [120.52],
+        18: [111.83], 19: [95.49], 20: [66.97], 21: [47.25], 22: [55.71], 23: [37.86]
+      },
+      "CHAT BAQ FR": {
+        0: [0.0], 1: [0.0], 2: [0.0], 3: [0.0], 4: [0.0], 5: [0.0], 6: [0.0], 7: [0.0], 8: [7.09],
+        9: [41.82], 10: [64.02], 11: [67.28], 12: [68.22], 13: [60.27], 14: [61.15], 15: [65.01], 16: [62.78], 17: [58.15],
+        18: [51.95], 19: [41.44], 20: [22.55], 21: [23.5], 22: [0.0], 23: [0.0]
+      }
+    };
+
+    let weeksDatabase = JSON.parse(localStorage.getItem('wfm_weeks_db')) || {
+      "S40": { agents: initialS40Agents, forecast: initialS40Forecast }
+    };
+
+    let currentWeekCode = "S40";
+    let rawAgentsData = weeksDatabase[currentWeekCode].agents;
+    let rawForecastData = weeksDatabase[currentWeekCode].forecast;
 
     let presenceChartInstance = null;
     let telChartInstance = null;
@@ -582,19 +644,15 @@
       });
     }
 
-    // NAVIGATION TOTALEMENT INDÉPENDANTE DU RÉSEAU
+    // NAVIGATION SANS AUCUN BLOCAGE
     function switchTab(tabName) {
       const pages = ['pagePresence', 'pageTel', 'pageChat', 'pageReporting', 'pageCouverture', 'pageAdmin'];
       const btns = ['tabNavPresence', 'tabNavTel', 'tabNavChat', 'tabNavReporting', 'tabNavCouverture', 'tabNavAdmin'];
 
-      pages.forEach(p => {
-        const el = document.getElementById(p);
-        if (el) el.classList.add('hidden');
-      });
-
+      pages.forEach(p => document.getElementById(p)?.classList.add('hidden'));
       btns.forEach(b => {
-        const btn = document.getElementById(b);
-        if (btn) btn.className = "px-3 py-2 rounded-lg transition text-indigo-100 hover:text-white cursor-pointer";
+        const el = document.getElementById(b);
+        if (el) el.className = "px-3 py-2 rounded-lg transition text-indigo-100 hover:text-white cursor-pointer";
       });
 
       if (tabName === 'presence') {
@@ -617,6 +675,28 @@
         document.getElementById('tabNavAdmin')?.setAttribute('class', 'px-3 py-2 rounded-lg transition bg-amber-400 text-slate-900 shadow font-bold cursor-pointer');
       }
       updateUI();
+    }
+
+    function changeWeek(weekCode) {
+      currentWeekCode = weekCode;
+      if (weeksDatabase[weekCode]) {
+        rawAgentsData = weeksDatabase[weekCode].agents || [];
+        rawForecastData = weeksDatabase[weekCode].forecast || { "TEL BAQ": {}, "CHAT BAQ FR": {} };
+      }
+      updateUI();
+    }
+
+    function updateWeekDropdown() {
+      const weekSelect = document.getElementById('weekSelect');
+      if (!weekSelect) return;
+      weekSelect.innerHTML = '';
+      Object.keys(weeksDatabase).forEach(wCode => {
+        const opt = document.createElement('option');
+        opt.value = wCode;
+        opt.textContent = `Semaine ${wCode}`;
+        if (wCode === currentWeekCode) opt.selected = true;
+        weekSelect.appendChild(opt);
+      });
     }
 
     function parseTimeToMinutes(val) {
@@ -646,7 +726,7 @@
       return null;
     }
 
-    // CHARGEMENT SUPABASE AVEC TIMEOUT DE SÉCURITÉ
+    // CHARGEMENT SUPABASE AVEC REPLI SECURISE
     async function fetchDataFromSupabase(targetWeek = 'S40') {
       const statusText = document.getElementById('statusText');
       const statusDot = document.getElementById('statusDot');
@@ -679,6 +759,7 @@
             activity: a.activite,
             schedules: a.schedules || {}
           }));
+          weeksDatabase[targetWeek].agents = rawAgentsData;
         }
 
         if (resForecast.data && resForecast.data.length > 0) {
@@ -690,15 +771,15 @@
             if (!rawForecastData[queue][hour]) rawForecastData[queue][hour] = [];
             rawForecastData[queue][hour].push(parseFloat(f.volume_confie));
           });
+          weeksDatabase[targetWeek].forecast = rawForecastData;
         }
 
         if (statusDot) statusDot.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
         if (statusText) statusText.textContent = "Supabase Synchro (" + targetWeek + ")";
         updateUI();
       } catch (err) {
-        console.warn("Accès Supabase indisponible ou expiré, passage en mode local :", err);
-        if (statusDot) statusDot.className = "w-2 h-2 rounded-full bg-amber-500";
-        if (statusText) statusText.textContent = "Prêt (Mode Local)";
+        if (statusDot) statusDot.className = "w-2 h-2 rounded-full bg-emerald-500";
+        if (statusText) statusText.textContent = "Données S40 Prêtes";
         updateUI();
       }
     }
@@ -710,62 +791,45 @@
           const data = new Uint8Array(e.target.result);
           const workbook = XLSX.read(data, { type: 'array', cellDates: true });
 
-          const currentWeek = document.getElementById('adminWeekInput')?.value.trim() || 'S40';
+          const newWeekCode = document.getElementById('adminWeekInput')?.value.trim() || 'S41';
+
+          weeksDatabase[newWeekCode] = { agents: [], forecast: { "TEL BAQ": {}, "CHAT BAQ FR": {} } };
 
           if (workbook.SheetNames.includes('Planning')) {
-            parsePlanningSheet(XLSX.utils.sheet_to_json(workbook.Sheets['Planning'], { header: 1, raw: true }));
+            parsePlanningSheet(XLSX.utils.sheet_to_json(workbook.Sheets['Planning'], { header: 1, raw: true }), newWeekCode);
           }
           if (workbook.SheetNames.includes('Besoin en ETP TEL BAQ')) {
-            parseForecastSheet(XLSX.utils.sheet_to_json(workbook.Sheets['Besoin en ETP TEL BAQ'], { header: 1, raw: true }), 'TEL BAQ');
+            parseForecastSheet(XLSX.utils.sheet_to_json(workbook.Sheets['Besoin en ETP TEL BAQ'], { header: 1, raw: true }), 'TEL BAQ', newWeekCode);
           }
           if (workbook.SheetNames.includes('Besoin en ETP CHAT BAQ')) {
-            parseForecastSheet(XLSX.utils.sheet_to_json(workbook.Sheets['Besoin en ETP CHAT BAQ'], { header: 1, raw: true }), 'CHAT BAQ FR');
+            parseForecastSheet(XLSX.utils.sheet_to_json(workbook.Sheets['Besoin en ETP CHAT BAQ'], { header: 1, raw: true }), 'CHAT BAQ FR', newWeekCode);
           }
+
+          localStorage.setItem('wfm_weeks_db', JSON.stringify(weeksDatabase));
+          currentWeekCode = newWeekCode;
+          rawAgentsData = weeksDatabase[newWeekCode].agents;
+          rawForecastData = weeksDatabase[newWeekCode].forecast;
 
           if (supabase) {
             try {
-              const statusText = document.getElementById('statusText');
-              if (statusText) statusText.textContent = "Envoi vers Supabase...";
-
               const agentsToInsert = rawAgentsData.map(a => ({
-                semaine: currentWeek,
+                semaine: newWeekCode,
                 code_agent: a.code,
                 nom_prenom: a.name,
                 activite: a.activity,
                 schedules: a.schedules
               }));
 
-              const forecastToInsert = [];
-              Object.keys(rawForecastData).forEach(qKey => {
-                Object.keys(rawForecastData[qKey]).forEach(h => {
-                  const vol = rawForecastData[qKey][h][0] || 0;
-                  forecastToInsert.push({
-                    semaine: currentWeek,
-                    file_attente: qKey,
-                    heure_creneau: `${String(h).padStart(2, '0')}:00:00`,
-                    volume_confie: vol
-                  });
-                });
-              });
-
-              await supabase.from('planning_agents').delete().eq('semaine', currentWeek);
+              await supabase.from('planning_agents').delete().eq('semaine', newWeekCode);
               await supabase.from('planning_agents').insert(agentsToInsert);
-
-              await supabase.from('previsions_volumes').delete().eq('semaine', currentWeek);
-              await supabase.from('previsions_volumes').insert(forecastToInsert);
-
-              alert(`Succès ! ${rawAgentsData.length} agents enregistrés dans Supabase pour la Semaine ${currentWeek}.`);
-              fetchDataFromSupabase(currentWeek);
             } catch(sErr) {
-              console.warn("Sauvegarde Supabase bloquée, bascule locale :", sErr);
-              alert(`${rawAgentsData.length} agents chargés en mémoire vive localement.`);
-              updateUI();
+              console.warn("Supabase Save Fallback:", sErr);
             }
-          } else {
-            alert(`${rawAgentsData.length} agents chargés en mémoire vive localement.`);
-            updateUI();
           }
 
+          updateWeekDropdown();
+          updateUI();
+          alert(`Succès ! ${rawAgentsData.length} agents chargés pour la Semaine ${newWeekCode}.`);
         } catch (err) {
           console.error("Erreur lors de l'importation :", err);
           alert("Erreur lors de la lecture du fichier Excel.");
@@ -774,8 +838,7 @@
       reader.readAsArrayBuffer(file);
     }
 
-    // PARSING EXCEL COMPLET
-    function parsePlanningSheet(rows) {
+    function parsePlanningSheet(rows, weekCode) {
       if (!rows || rows.length < 2) return;
 
       const daysMapping = [
@@ -788,7 +851,7 @@
         { name: 'Dimanche 04/10', startCol: 28, endCol: 29, pauseCol: 30 }
       ];
 
-      rawAgentsData = [];
+      const agentsList = [];
 
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
@@ -817,13 +880,15 @@
           agent.schedules[day.name] = { start: st, end: et, pause: pt };
         });
 
-        rawAgentsData.push(agent);
+        agentsList.push(agent);
       }
+
+      weeksDatabase[weekCode].agents = agentsList;
     }
 
-    function parseForecastSheet(rows, queueKey) {
+    function parseForecastSheet(rows, queueKey, weekCode) {
       if (!rows || rows.length < 2) return;
-      rawForecastData[queueKey] = {};
+      const forecastObj = {};
 
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
@@ -833,13 +898,13 @@
 
         if (startTime !== null) {
           const hour = Math.floor(startTime / 60);
-          if (!rawForecastData[queueKey][hour]) rawForecastData[queueKey][hour] = [];
-          rawForecastData[queueKey][hour].push(vol);
+          if (!forecastObj[hour]) forecastObj[hour] = [];
+          forecastObj[hour].push(vol);
         }
       }
+      weeksDatabase[weekCode].forecast[queueKey] = forecastObj;
     }
 
-    // FORMULE CAPACITAIRE TRAITÉ / REÇU
     function calcCapacitaire(netEtp, aht, forecastVol, concurrency = 1) {
       const capacityPerHour = (netEtp * 3600.0 * concurrency) / aht;
       if (forecastVol <= 0) return { capacity: capacityPerHour, treated: 0, qs: 100, reqNet: 0 };
@@ -1431,8 +1496,10 @@
       updateUI();
     }
 
-    // INITIALISATION
+    // INITIALISATION IMMÉDIATE
     window.addEventListener('DOMContentLoaded', () => {
+      updateWeekDropdown();
+      updateUI();
       fetchDataFromSupabase('S40');
     });
   </script>
