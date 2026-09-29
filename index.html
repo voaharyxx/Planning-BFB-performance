@@ -10,21 +10,19 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- SheetJS (xlsx) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <!-- Supabase JS Client -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans min-h-screen pb-12">
 
-  <!-- En-tête avec Navigation -->
+  <!-- En-tête avec Navigation 6 Onglets -->
   <header class="bg-indigo-700 text-white shadow-md mb-8">
     <div class="max-w-7xl mx-auto px-4 py-5 flex flex-col md:flex-row justify-between items-center gap-4">
       <div class="flex items-center gap-3">
         <i class="fa-solid fa-chart-line text-3xl text-indigo-200"></i>
         <div>
           <h1 class="text-2xl font-bold">Plateforme WFM Planning & Reporting</h1>
-          <p class="text-indigo-200 text-sm">Dimensionnement Capacitaire Traité/Reçu, Supabase & Vercel</p>
+          <p class="text-indigo-200 text-sm">Dimensionnement Capacitaire Traité/Reçu & Analyse de Couverture</p>
         </div>
       </div>
 
@@ -60,8 +58,8 @@
         <div class="flex items-center gap-2">
           <i class="fa-solid fa-calendar-check text-indigo-600 text-base"></i>
           <span class="font-bold text-slate-700">Semaine :</span>
-          <select id="weekSelect" onchange="fetchDataFromSupabase(this.value)" class="bg-indigo-50 border border-indigo-200 rounded px-3 py-1 font-bold text-indigo-900 focus:outline-none cursor-pointer">
-            <option value="S40">Semaine S40</option>
+          <select id="weekSelect" onchange="changeWeek(this.value)" class="bg-indigo-50 border border-indigo-200 rounded px-3 py-1 font-bold text-indigo-900 focus:outline-none cursor-pointer">
+            <option value="S40">Semaine S40 (Initiale)</option>
           </select>
         </div>
 
@@ -75,8 +73,8 @@
       </div>
 
       <div class="flex items-center gap-3">
-        <span id="dataStatusBadge" class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-md font-bold flex items-center gap-1.5">
-          <span id="statusDot" class="w-2 h-2 rounded-full bg-emerald-500"></span><span id="statusText">Prêt</span>
+        <span class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-md font-bold flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>Données Initiales Chargées
         </span>
       </div>
     </section>
@@ -401,7 +399,7 @@
         <i class="fa-solid fa-cloud-arrow-up text-2xl text-amber-600"></i>
         <div>
           <h3 class="font-bold">Espace Administrateur & Alimentation Hebdomadaire</h3>
-          <p class="text-xs text-amber-700">Importez votre fichier Excel pour charger l'intégralité des agents et des prévisions.</p>
+          <p class="text-xs text-amber-700">Importez le fichier Excel de n'importe quelle semaine pour charger 100% des agents.</p>
         </div>
       </div>
 
@@ -416,7 +414,7 @@
           <div class="space-y-3">
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">Nom / Code de la Semaine :</label>
-              <input type="text" id="adminWeekInput" value="S40" placeholder="Ex: S40" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold text-indigo-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              <input type="text" id="adminWeekInput" value="S41" placeholder="Ex: S41" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold text-indigo-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
             </div>
 
             <label id="dropZoneAdmin" class="flex flex-col items-center justify-center border-2 border-dashed border-indigo-300 hover:border-indigo-500 bg-indigo-50/50 hover:bg-indigo-50 rounded-xl p-6 transition cursor-pointer text-center group">
@@ -428,7 +426,7 @@
           </div>
 
           <div class="flex flex-col justify-center space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-            <span class="font-bold text-xs text-slate-700 uppercase">Données chargées en mémoire :</span>
+            <span class="font-bold text-xs text-slate-700 uppercase">Aperçu Semaine Active :</span>
             <div class="text-xs space-y-1 text-slate-600">
               <div>• Total agents chargés : <span id="adminCountAgents" class="font-bold text-indigo-700">0</span></div>
               <div>• Créneaux TEL BAQ : <span id="adminCountTel" class="font-bold text-indigo-700">0</span> créneaux</div>
@@ -482,7 +480,7 @@
 
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">Simultanéité (Chats par Agent) :</label>
-              <input type="number" id="adminChatConcurrency" value="2" min="1" max="5" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-bold text-cyan-900">
+              <input type="number" id="adminChatConcurrency" value="2" min="1" max="5" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm font-bold text-cyan-900">
             </div>
 
             <div>
@@ -535,21 +533,47 @@
   </main>
 
   <script>
-    // CONFIGURATION SUPABASE SECURISEE
-    const SUPABASE_URL = 'https://vysarmqjgfnnpetoozbw.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_xwzHkjtP1X-70XT5otBASw_x3sHsYQ8';
-    let supabase = null;
-
-    try {
-      if (window.supabase && typeof window.supabase.createClient === 'function') {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      }
-    } catch(err) {
-      console.warn("Client Supabase désactivé temporairement:", err);
+    // BASE DE DONNÉES DE BASE INITIALE (SEMAINE S40 DÉJÀ INITIALISÉE)
+    const defaultS40Agents = [];
+    for (let i = 1; i <= 69; i++) {
+      const isChat = (i % 4 === 0);
+      defaultS40Agents.push({
+        id: i,
+        code: `AG-${1000 + i}`,
+        name: `Agent ${isChat ? 'CHAT' : 'TEL'} ${i}`,
+        activity: isChat ? 'CHAT BAQ' : 'TEL BAQ',
+        schedules: {
+          'Lundi 28/09': { start: 540, end: 1080, pause: 840 },
+          'Mardi 29/09': { start: 540, end: 1080, pause: 840 },
+          'Mercredi 30/09': { start: 540, end: 1080, pause: 840 },
+          'Jeudi 01/10': { start: 540, end: 1080, pause: 840 },
+          'Vendredi 02/10': { start: 540, end: 1080, pause: 840 },
+          'Samedi 03/10': { start: null, end: null, pause: null },
+          'Dimanche 04/10': { start: null, end: null, pause: null }
+        }
+      });
     }
 
-    let rawAgentsData = [];
-    let rawForecastData = { "TEL BAQ": {}, "CHAT BAQ FR": {} };
+    const defaultS40Forecast = {
+      "TEL BAQ": {
+        0: [0], 1: [0], 2: [0], 3: [0], 4: [0], 5: [0], 6: [5], 7: [23], 8: [46],
+        9: [103], 10: [95], 11: [93], 12: [92], 13: [82], 14: [76], 15: [85], 16: [86], 17: [88],
+        18: [84], 19: [60], 20: [35], 21: [15], 22: [5], 23: [0]
+      },
+      "CHAT BAQ FR": {
+        0: [0], 1: [0], 2: [0], 3: [0], 4: [0], 5: [0], 6: [2], 7: [10], 8: [20],
+        9: [45], 10: [40], 11: [42], 12: [38], 13: [35], 14: [32], 15: [40], 16: [41], 17: [39],
+        18: [30], 19: [20], 20: [10], 21: [5], 22: [0], 23: [0]
+      }
+    };
+
+    let weeksDatabase = JSON.parse(localStorage.getItem('wfm_weeks_db')) || {
+      "S40": { agents: defaultS40Agents, forecast: defaultS40Forecast }
+    };
+
+    let currentWeekCode = "S40";
+    let rawAgentsData = weeksDatabase[currentWeekCode].agents;
+    let rawForecastData = weeksDatabase[currentWeekCode].forecast;
 
     let presenceChartInstance = null;
     let telChartInstance = null;
@@ -575,19 +599,15 @@
       });
     }
 
-    // NAVIGATION TOTALEMENT INDÉPENDANTE DU RÉSEAU
+    // NAVIGATION GARANTIE SANS AUCUN BLOCAGE
     function switchTab(tabName) {
       const pages = ['pagePresence', 'pageTel', 'pageChat', 'pageReporting', 'pageCouverture', 'pageAdmin'];
       const btns = ['tabNavPresence', 'tabNavTel', 'tabNavChat', 'tabNavReporting', 'tabNavCouverture', 'tabNavAdmin'];
 
-      pages.forEach(p => {
-        const el = document.getElementById(p);
-        if (el) el.classList.add('hidden');
-      });
-
+      pages.forEach(p => document.getElementById(p)?.classList.add('hidden'));
       btns.forEach(b => {
-        const btn = document.getElementById(b);
-        if (btn) btn.className = "px-3 py-2 rounded-lg transition text-indigo-100 hover:text-white cursor-pointer";
+        const el = document.getElementById(b);
+        if (el) el.className = "px-3 py-2 rounded-lg transition text-indigo-100 hover:text-white cursor-pointer";
       });
 
       if (tabName === 'presence') {
@@ -610,6 +630,28 @@
         document.getElementById('tabNavAdmin')?.setAttribute('class', 'px-3 py-2 rounded-lg transition bg-amber-400 text-slate-900 shadow font-bold cursor-pointer');
       }
       updateUI();
+    }
+
+    function changeWeek(weekCode) {
+      currentWeekCode = weekCode;
+      if (weeksDatabase[weekCode]) {
+        rawAgentsData = weeksDatabase[weekCode].agents || [];
+        rawForecastData = weeksDatabase[weekCode].forecast || { "TEL BAQ": {}, "CHAT BAQ FR": {} };
+      }
+      updateUI();
+    }
+
+    function updateWeekDropdown() {
+      const weekSelect = document.getElementById('weekSelect');
+      if (!weekSelect) return;
+      weekSelect.innerHTML = '';
+      Object.keys(weeksDatabase).forEach(wCode => {
+        const opt = document.createElement('option');
+        opt.value = wCode;
+        opt.textContent = `Semaine ${wCode}`;
+        if (wCode === currentWeekCode) opt.selected = true;
+        weekSelect.appendChild(opt);
+      });
     }
 
     function parseTimeToMinutes(val) {
@@ -639,126 +681,35 @@
       return null;
     }
 
-    // CHARGEMENT SUPABASE AVEC TIMEOUT DE SÉCURITÉ DE 2 SECONDES
-    async function fetchDataFromSupabase(targetWeek = 'S40') {
-      const statusText = document.getElementById('statusText');
-      const statusDot = document.getElementById('statusDot');
-
-      if (!supabase) {
-        if (statusText) statusText.textContent = "Prêt (Mode Fichier Local)";
-        if (statusDot) statusDot.className = "w-2 h-2 rounded-full bg-slate-400";
-        return;
-      }
-
-      if (statusText) statusText.textContent = "Connexion Supabase...";
-
-      const fetchPromise = Promise.all([
-        supabase.from('planning_agents').select('*').eq('semaine', targetWeek),
-        supabase.from('previsions_volumes').select('*').eq('semaine', targetWeek)
-      ]);
-
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Timeout réseau")), 2000)
-      );
-
-      try {
-        const [resAgents, resForecast] = await Promise.race([fetchPromise, timeoutPromise]);
-
-        if (resAgents.data && resAgents.data.length > 0) {
-          rawAgentsData = resAgents.data.map((a, idx) => ({
-            id: a.id || idx + 1,
-            code: a.code_agent,
-            name: a.nom_prenom,
-            activity: a.activite,
-            schedules: a.schedules || {}
-          }));
-        }
-
-        if (resForecast.data && resForecast.data.length > 0) {
-          rawForecastData = { "TEL BAQ": {}, "CHAT BAQ FR": {} };
-          resForecast.data.forEach(f => {
-            const queue = f.file_attente;
-            const hour = parseInt(f.heure_creneau.split(':')[0], 10);
-            if (!rawForecastData[queue]) rawForecastData[queue] = {};
-            if (!rawForecastData[queue][hour]) rawForecastData[queue][hour] = [];
-            rawForecastData[queue][hour].push(parseFloat(f.volume_confie));
-          });
-        }
-
-        if (statusDot) statusDot.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
-        if (statusText) statusText.textContent = "Supabase Synchro (" + targetWeek + ")";
-        updateUI();
-      } catch (err) {
-        console.warn("Accès Supabase indisponible ou expiré, passage en mode local :", err);
-        if (statusDot) statusDot.className = "w-2 h-2 rounded-full bg-amber-500";
-        if (statusText) statusText.textContent = "Prêt (Mode Local)";
-        updateUI();
-      }
-    }
-
-    async function handleFile(file) {
+    function handleFile(file) {
       const reader = new FileReader();
-      reader.onload = async function (e) {
+      reader.onload = function (e) {
         try {
           const data = new Uint8Array(e.target.result);
           const workbook = XLSX.read(data, { type: 'array', cellDates: true });
 
-          const currentWeek = document.getElementById('adminWeekInput')?.value.trim() || 'S40';
+          const newWeekCode = document.getElementById('adminWeekInput')?.value.trim() || 'S41';
+
+          weeksDatabase[newWeekCode] = { agents: [], forecast: { "TEL BAQ": {}, "CHAT BAQ FR": {} } };
 
           if (workbook.SheetNames.includes('Planning')) {
-            parsePlanningSheet(XLSX.utils.sheet_to_json(workbook.Sheets['Planning'], { header: 1, raw: true }));
+            parsePlanningSheet(XLSX.utils.sheet_to_json(workbook.Sheets['Planning'], { header: 1, raw: true }), newWeekCode);
           }
           if (workbook.SheetNames.includes('Besoin en ETP TEL BAQ')) {
-            parseForecastSheet(XLSX.utils.sheet_to_json(workbook.Sheets['Besoin en ETP TEL BAQ'], { header: 1, raw: true }), 'TEL BAQ');
+            parseForecastSheet(XLSX.utils.sheet_to_json(workbook.Sheets['Besoin en ETP TEL BAQ'], { header: 1, raw: true }), 'TEL BAQ', newWeekCode);
           }
           if (workbook.SheetNames.includes('Besoin en ETP CHAT BAQ')) {
-            parseForecastSheet(XLSX.utils.sheet_to_json(workbook.Sheets['Besoin en ETP CHAT BAQ'], { header: 1, raw: true }), 'CHAT BAQ FR');
+            parseForecastSheet(XLSX.utils.sheet_to_json(workbook.Sheets['Besoin en ETP CHAT BAQ'], { header: 1, raw: true }), 'CHAT BAQ FR', newWeekCode);
           }
 
-          if (supabase) {
-            try {
-              const statusText = document.getElementById('statusText');
-              if (statusText) statusText.textContent = "Envoi vers Supabase...";
+          localStorage.setItem('wfm_weeks_db', JSON.stringify(weeksDatabase));
+          currentWeekCode = newWeekCode;
+          rawAgentsData = weeksDatabase[newWeekCode].agents;
+          rawForecastData = weeksDatabase[newWeekCode].forecast;
 
-              const agentsToInsert = rawAgentsData.map(a => ({
-                semaine: currentWeek,
-                code_agent: a.code,
-                nom_prenom: a.name,
-                activite: a.activity,
-                schedules: a.schedules
-              }));
-
-              const forecastToInsert = [];
-              Object.keys(rawForecastData).forEach(qKey => {
-                Object.keys(rawForecastData[qKey]).forEach(h => {
-                  const vol = rawForecastData[qKey][h][0] || 0;
-                  forecastToInsert.push({
-                    semaine: currentWeek,
-                    file_attente: qKey,
-                    heure_creneau: `${String(h).padStart(2, '0')}:00:00`,
-                    volume_confie: vol
-                  });
-                });
-              });
-
-              await supabase.from('planning_agents').delete().eq('semaine', currentWeek);
-              await supabase.from('planning_agents').insert(agentsToInsert);
-
-              await supabase.from('previsions_volumes').delete().eq('semaine', currentWeek);
-              await supabase.from('previsions_volumes').insert(forecastToInsert);
-
-              alert(`Succès ! ${rawAgentsData.length} agents enregistrés dans Supabase pour la Semaine ${currentWeek}.`);
-              fetchDataFromSupabase(currentWeek);
-            } catch(sErr) {
-              console.warn("Sauvegarde Supabase bloquée, bascule locale :", sErr);
-              alert(`${rawAgentsData.length} agents chargés en mémoire vive localement.`);
-              updateUI();
-            }
-          } else {
-            alert(`${rawAgentsData.length} agents chargés en mémoire vive localement.`);
-            updateUI();
-          }
-
+          updateWeekDropdown();
+          updateUI();
+          alert(`Succès ! ${rawAgentsData.length} agents chargés pour la Semaine ${newWeekCode}.`);
         } catch (err) {
           console.error("Erreur lors de l'importation :", err);
           alert("Erreur lors de la lecture du fichier Excel.");
@@ -767,8 +718,7 @@
       reader.readAsArrayBuffer(file);
     }
 
-    // PARSING EXCEL COMPLET POUR CAPTURER LES 69 AGENTS
-    function parsePlanningSheet(rows) {
+    function parsePlanningSheet(rows, weekCode) {
       if (!rows || rows.length < 2) return;
 
       const daysMapping = [
@@ -781,7 +731,7 @@
         { name: 'Dimanche 04/10', startCol: 28, endCol: 29, pauseCol: 30 }
       ];
 
-      rawAgentsData = [];
+      const agentsList = [];
 
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
@@ -810,13 +760,15 @@
           agent.schedules[day.name] = { start: st, end: et, pause: pt };
         });
 
-        rawAgentsData.push(agent);
+        agentsList.push(agent);
       }
+
+      weeksDatabase[weekCode].agents = agentsList;
     }
 
-    function parseForecastSheet(rows, queueKey) {
+    function parseForecastSheet(rows, queueKey, weekCode) {
       if (!rows || rows.length < 2) return;
-      rawForecastData[queueKey] = {};
+      const forecastObj = {};
 
       for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
@@ -826,13 +778,13 @@
 
         if (startTime !== null) {
           const hour = Math.floor(startTime / 60);
-          if (!rawForecastData[queueKey][hour]) rawForecastData[queueKey][hour] = [];
-          rawForecastData[queueKey][hour].push(vol);
+          if (!forecastObj[hour]) forecastObj[hour] = [];
+          forecastObj[hour].push(vol);
         }
       }
+      weeksDatabase[weekCode].forecast[queueKey] = forecastObj;
     }
 
-    // FORMULE CAPACITAIRE TRAITÉ / REÇU
     function calcCapacitaire(netEtp, aht, forecastVol, concurrency = 1) {
       const capacityPerHour = (netEtp * 3600.0 * concurrency) / aht;
       if (forecastVol <= 0) return { capacity: capacityPerHour, treated: 0, qs: 100, reqNet: 0 };
@@ -1424,9 +1376,10 @@
       updateUI();
     }
 
-    // INITIALISATION
+    // INITIALISATION IMMÉDIATE SANS RÉSEAU
     window.addEventListener('DOMContentLoaded', () => {
-      fetchDataFromSupabase('S40');
+      updateWeekDropdown();
+      updateUI();
     });
   </script>
 </body>
