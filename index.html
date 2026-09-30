@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Plateforme WFM Planning, Dimensionnement & Reporting</title>
+  <title>Plateforme WFM Planning & Reporting (Mode Local)</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Chart.js -->
@@ -15,14 +15,14 @@
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans min-h-screen pb-12">
 
-  <!-- En-tête avec Navigation -->
+  <!-- En-tête avec Navigation Onglets -->
   <header class="bg-indigo-700 text-white shadow-md mb-8">
     <div class="max-w-7xl mx-auto px-4 py-5 flex flex-col md:flex-row justify-between items-center gap-4">
       <div class="flex items-center gap-3">
         <i class="fa-solid fa-chart-line text-3xl text-indigo-200"></i>
         <div>
           <h1 class="text-2xl font-bold">Plateforme WFM Planning & Reporting</h1>
-          <p class="text-indigo-200 text-sm">Gestion des Capacités, Supabase & Vercel</p>
+          <p class="text-indigo-200 text-sm">Dimensionnement Capacitaire Traité/Reçu & Analyse de Couverture</p>
         </div>
       </div>
 
@@ -80,8 +80,8 @@
       </div>
 
       <div class="flex items-center gap-3">
-        <span id="dataStatusBadge" class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-md font-bold flex items-center gap-1.5">
-          <span id="statusDot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span id="statusText">Données Prêtes</span>
+        <span class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-md font-bold flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>Mode Autonome Local Actif
         </span>
       </div>
     </section>
@@ -403,10 +403,10 @@
     <!-- ==================== PAGE 6 : ESPACE ADMIN ==================== -->
     <div id="pageAdmin" class="space-y-8 hidden">
       <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-3 text-amber-800 text-sm">
-        <i class="fa-solid fa-cloud-arrow-up text-2xl text-amber-600"></i>
+        <i class="fa-solid fa-file-excel text-2xl text-amber-600"></i>
         <div>
-          <h3 class="font-bold">Espace Administrateur & Synchronisation Supabase</h3>
-          <p class="text-xs text-amber-700">Importez votre fichier Excel pour charger l'intégralité des agents et synchroniser avec Supabase.</p>
+          <h3 class="font-bold">Espace Administrateur & Alimentation Hebdomadaire</h3>
+          <p class="text-xs text-amber-700">Importez le fichier Excel de n'importe quelle nouvelle semaine pour l'analyser localement.</p>
         </div>
       </div>
 
@@ -428,7 +428,7 @@
               <input type="file" id="fileInputAdmin" accept=".xlsx, .xls, .csv" class="hidden" />
               <i class="fa-solid fa-cloud-arrow-up text-3xl text-indigo-500 mb-2"></i>
               <span class="font-semibold text-indigo-900 text-sm">Glisser-déposer votre fichier Excel ici</span>
-              <span class="text-xs text-slate-500 mt-1">S'ajoute sans écraser les autres semaines</span>
+              <span class="text-xs text-slate-500 mt-1">S'ajoute aux semaines enregistrées</span>
             </label>
           </div>
 
@@ -458,17 +458,17 @@
 
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">DMT Appel (secondes) :</label>
-              <input type="number" id="adminTelAHT" value="240" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-semibold">
+              <input type="number" id="adminTelAHT" value="240" onchange="updateUI()" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-semibold">
             </div>
 
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">Shrinkage / Losses (%) :</label>
-              <input type="number" id="adminTelShrinkage" value="20" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-semibold">
+              <input type="number" id="adminTelShrinkage" value="20" onchange="updateUI()" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-semibold">
             </div>
 
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">Objectif Cible QS Traité/Reçu (%) :</label>
-              <input type="number" id="adminTelTargetQS" value="100" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-semibold">
+              <input type="number" id="adminTelTargetQS" value="100" onchange="updateUI()" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-semibold">
             </div>
 
             <div class="pt-2 border-t border-indigo-200 flex items-center justify-between">
@@ -476,7 +476,7 @@
                 <span class="text-xs font-bold text-slate-700 block">Soustraction -3 ETP Net (09h-18h)</span>
                 <span class="text-[10px] text-slate-500">Tâches annexes / Back-office</span>
               </div>
-              <input type="checkbox" id="adminTelDeductionToggle" checked class="w-4 h-4 text-indigo-600 rounded border-slate-300">
+              <input type="checkbox" id="adminTelDeductionToggle" checked onchange="updateUI()" class="w-4 h-4 text-indigo-600 rounded border-slate-300">
             </div>
           </div>
 
@@ -487,22 +487,22 @@
 
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">Simultanéité (Chats par Agent) :</label>
-              <input type="number" id="adminChatConcurrency" value="2" min="1" max="5" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-bold text-cyan-900">
+              <input type="number" id="adminChatConcurrency" value="2" min="1" max="5" onchange="updateUI()" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-bold text-cyan-900">
             </div>
 
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">DMT Chat (secondes) :</label>
-              <input type="number" id="adminChatAHT" value="300" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-semibold">
+              <input type="number" id="adminChatAHT" value="300" onchange="updateUI()" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-semibold">
             </div>
 
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">Shrinkage / Losses (%) :</label>
-              <input type="number" id="adminChatShrinkage" value="20" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-semibold">
+              <input type="number" id="adminChatShrinkage" value="20" onchange="updateUI()" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-semibold">
             </div>
 
             <div>
               <label class="block text-xs font-semibold text-slate-600 mb-1">Objectif Cible QS Traité/Reçu (%) :</label>
-              <input type="number" id="adminChatTargetQS" value="100" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-semibold">
+              <input type="number" id="adminChatTargetQS" value="100" onchange="updateUI()" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-semibold">
             </div>
           </div>
         </div>
@@ -540,27 +540,31 @@
   </main>
 
   <script>
-    // CONFIGURATION REST DIRECTE SUPABASE
-    const SUPABASE_BASE_URL = 'https://vysarmqjgfnnpetoozbw.supabase.co/rest/v1';
-    const SUPABASE_KEY = 'sb_publishable_xwzHkjtP1X-70XT5otBASw_x3sHsYQ8';
-
-    const getHeaders = () => ({
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=representation'
-    });
-
-    // BASE INITIALE S40
+    // BASE INITIALE DE LA SEMAINE S40 (ISSUE DE VOTRE FICHIER EXCEL REAL)
     const initialS40Agents = [
       { id: 1, code: "1601", name: "ANDRIAMANALINA Tsiory Nasandratra", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: 1140, end: 360, pause: 150 }, "Mardi 29/09": { start: 1140, end: 360, pause: 1380 }, "Mercredi 30/09": { start: null, end: null, pause: null }, "Jeudi 01/10": { start: 1140, end: 360, pause: 1380 }, "Vendredi 02/10": { start: 1140, end: 360, pause: 1380 }, "Samedi 03/10": { start: null, end: null, pause: null }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
       { id: 2, code: "6997", name: "ANDRIAMBOLA Faniry Mamonjisoa", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: null, end: null, pause: null }, "Mardi 29/09": { start: null, end: null, pause: null }, "Mercredi 30/09": { start: 1140, end: 360, pause: 1410 }, "Jeudi 01/10": { start: 1140, end: 360, pause: 1410 }, "Vendredi 02/10": { start: 1140, end: 360, pause: 1410 }, "Samedi 03/10": { start: 1140, end: 360, pause: 1410 }, "Dimanche 04/10": { start: 1140, end: 360, pause: 1410 } } },
       { id: 3, code: "2801", name: "ANDRIANANTENAINA Harlivah Tatiana", activity: "CHAT BAQ", schedules: { "Lundi 28/09": { start: 540, end: 1080, pause: 840 }, "Mardi 29/09": { start: 540, end: 1080, pause: 840 }, "Mercredi 30/09": { start: 540, end: 1080, pause: 840 }, "Jeudi 01/10": { start: 540, end: 1080, pause: 840 }, "Vendredi 02/10": { start: 540, end: 1080, pause: 840 }, "Samedi 03/10": { start: null, end: null, pause: null }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
       { id: 4, code: "8983", name: "ANDRIANIAINA Nomenjanahary Errica", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: 780, end: 1320, pause: 1020 }, "Mardi 29/09": { start: 780, end: 1320, pause: 1050 }, "Mercredi 30/09": { start: null, end: null, pause: null }, "Jeudi 01/10": { start: 780, end: 1320, pause: 1050 }, "Vendredi 02/10": { start: 780, end: 1320, pause: 1050 }, "Samedi 03/10": { start: 780, end: 1320, pause: 1050 }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
-      { id: 5, code: "6757", name: "ANDRIANIRINA Soamanantena Avotra", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: null, end: null, pause: null }, "Mardi 29/09": { start: 840, end: 1380, pause: 1080 }, "Mercredi 30/09": { start: 840, end: 1380, pause: 1080 }, "Jeudi 01/10": { start: 840, end: 1380, pause: 1080 }, "Vendredi 02/10": { start: 840, end: 1380, pause: 1080 }, "Samedi 03/10": { start: 840, end: 1380, pause: 1080 }, "Dimanche 04/10": { start: null, end: null, pause: null } } }
+      { id: 5, code: "6757", name: "ANDRIANIRINA Soamanantena Avotra", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: null, end: null, pause: null }, "Mardi 29/09": { start: 840, end: 1380, pause: 1080 }, "Mercredi 30/09": { start: 840, end: 1380, pause: 1080 }, "Jeudi 01/10": { start: 840, end: 1380, pause: 1080 }, "Vendredi 02/10": { start: 840, end: 1380, pause: 1080 }, "Samedi 03/10": { start: 840, end: 1380, pause: 1080 }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 6, code: "1386", name: "ANDRIATSARA Nirinasoa Finoana Felicite", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: 540, end: 1080, pause: 900 }, "Mardi 29/09": { start: 540, end: 1080, pause: 900 }, "Mercredi 30/09": { start: 540, end: 1080, pause: 900 }, "Jeudi 01/10": { start: 540, end: 1080, pause: 900 }, "Vendredi 02/10": { start: 540, end: 1080, pause: 900 }, "Samedi 03/10": { start: null, end: null, pause: null }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 7, code: "3300", name: "FELICIANA Solange Vilidier", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: 840, end: 1380, pause: 1200 }, "Mardi 29/09": { start: 840, end: 1380, pause: 1200 }, "Mercredi 30/09": { start: null, end: null, pause: null }, "Jeudi 01/10": { start: 840, end: 1380, pause: 1200 }, "Vendredi 02/10": { start: 840, end: 1380, pause: 1200 }, "Samedi 03/10": { start: 840, end: 1380, pause: 1200 }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 8, code: "6437", name: "HARINANTOANINA Felanirina Mampionona", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: null, end: null, pause: null }, "Mardi 29/09": { start: 540, end: 1080, pause: 900 }, "Mercredi 30/09": { start: 540, end: 1080, pause: 900 }, "Jeudi 01/10": { start: 540, end: 1080, pause: 900 }, "Vendredi 02/10": { start: 540, end: 1080, pause: 900 }, "Samedi 03/10": { start: 540, end: 1080, pause: 900 }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 9, code: "2013", name: "HARINOSY Soloniaina Tiavina Aimée", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: 540, end: 1080, pause: 840 }, "Mardi 29/09": { start: 540, end: 1080, pause: 840 }, "Mercredi 30/09": { start: 540, end: 1080, pause: 840 }, "Jeudi 01/10": { start: 540, end: 1080, pause: 840 }, "Vendredi 02/10": { start: 540, end: 1080, pause: 840 }, "Samedi 03/10": { start: null, end: null, pause: null }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 10, code: "7706", name: "HERINIAINA Tovo Mamy Nasolo", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: 540, end: 1080, pause: 840 }, "Mardi 29/09": { start: 540, end: 1080, pause: 840 }, "Mercredi 30/09": { start: 540, end: 1080, pause: 840 }, "Jeudi 01/10": { start: 540, end: 1080, pause: 840 }, "Vendredi 02/10": { start: 540, end: 1080, pause: 840 }, "Samedi 03/10": { start: null, end: null, pause: null }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 11, code: "3674", name: "KOLONAINASOA Valisoa Fifaliana", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: 780, end: 1320, pause: 1080 }, "Mardi 29/09": { start: 780, end: 1320, pause: 1080 }, "Mercredi 30/09": { start: null, end: null, pause: null }, "Jeudi 01/10": { start: 780, end: 1320, pause: 1080 }, "Vendredi 02/10": { start: 780, end: 1320, pause: 1080 }, "Samedi 03/10": { start: 780, end: 1320, pause: 1080 }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 12, code: "2508", name: "LALANIRINA Felaniaina Miora Lova", activity: "CHAT BAQ", schedules: { "Lundi 28/09": { start: 540, end: 1080, pause: 840 }, "Mardi 29/09": { start: 540, end: 1080, pause: 840 }, "Mercredi 30/09": { start: 540, end: 1080, pause: 840 }, "Jeudi 01/10": { start: 540, end: 1080, pause: 840 }, "Vendredi 02/10": { start: 540, end: 1080, pause: 840 }, "Samedi 03/10": { start: null, end: null, pause: null }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 13, code: "7709", name: "MAMISOA Zay Amélie", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: 540, end: 1080, pause: 900 }, "Mardi 29/09": { start: 540, end: 1080, pause: 900 }, "Mercredi 30/09": { start: 540, end: 1080, pause: 900 }, "Jeudi 01/10": { start: 540, end: 1080, pause: 900 }, "Vendredi 02/10": { start: 540, end: 1080, pause: 900 }, "Samedi 03/10": { start: null, end: null, pause: null }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 14, code: "2776", name: "MANANJARA Mahatehotsy Vaneah Mialy", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: 540, end: 1080, pause: 840 }, "Mardi 29/09": { start: 540, end: 1080, pause: 840 }, "Mercredi 30/09": { start: 540, end: 1080, pause: 840 }, "Jeudi 01/10": { start: 540, end: 1080, pause: 840 }, "Vendredi 02/10": { start: 540, end: 1080, pause: 840 }, "Samedi 03/10": { start: null, end: null, pause: null }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 15, code: "7882", name: "MANANTENA Nirina Alisaona", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: 780, end: 1320, pause: 1020 }, "Mardi 29/09": { start: 780, end: 1320, pause: 1020 }, "Mercredi 30/09": { start: 780, end: 1320, pause: 1020 }, "Jeudi 01/10": { start: 780, end: 1320, pause: 1020 }, "Vendredi 02/10": { start: 780, end: 1320, pause: 1020 }, "Samedi 03/10": { start: null, end: null, pause: null }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 16, code: "9473", name: "MIARINJATO Lalatiana Soafara Ruth", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: 540, end: 1080, pause: 900 }, "Mardi 29/09": { start: 540, end: 1080, pause: 900 }, "Mercredi 30/09": { start: 540, end: 1080, pause: 900 }, "Jeudi 01/10": { start: 540, end: 1080, pause: 900 }, "Vendredi 02/10": { start: 540, end: 1080, pause: 900 }, "Samedi 03/10": { start: null, end: null, pause: null }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 17, code: "1234", name: "NANDRASANA Mamiarilanto Sitraka", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: 540, end: 1080, pause: 840 }, "Mardi 29/09": { start: 540, end: 1080, pause: 840 }, "Mercredi 30/09": { start: 540, end: 1080, pause: 840 }, "Jeudi 01/10": { start: 540, end: 1080, pause: 840 }, "Vendredi 02/10": { start: 540, end: 1080, pause: 840 }, "Samedi 03/10": { start: null, end: null, pause: null }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 18, code: "5678", name: "RAFARALAHY Tefiniaina Jean Marc", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: 840, end: 1380, pause: 1080 }, "Mardi 29/09": { start: 840, end: 1380, pause: 1080 }, "Mercredi 30/09": { start: 840, end: 1380, pause: 1080 }, "Jeudi 01/10": { start: 840, end: 1380, pause: 1080 }, "Vendredi 02/10": { start: 840, end: 1380, pause: 1080 }, "Samedi 03/10": { start: null, end: null, pause: null }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 19, code: "9101", name: "RAHARIMALALA Marie Chantal", activity: "CHAT BAQ", schedules: { "Lundi 28/09": { start: 540, end: 1080, pause: 840 }, "Mardi 29/09": { start: 540, end: 1080, pause: 840 }, "Mercredi 30/09": { start: 540, end: 1080, pause: 840 }, "Jeudi 01/10": { start: 540, end: 1080, pause: 840 }, "Vendredi 02/10": { start: 540, end: 1080, pause: 840 }, "Samedi 03/10": { start: null, end: null, pause: null }, "Dimanche 04/10": { start: null, end: null, pause: null } } },
+      { id: 20, code: "1121", name: "RAKOTOMAMONJY Heriniaina Finoana", activity: "TEL BAQ", schedules: { "Lundi 28/09": { start: 540, end: 1080, pause: 900 }, "Mardi 29/09": { start: 540, end: 1080, pause: 900 }, "Mercredi 30/09": { start: 540, end: 1080, pause: 900 }, "Jeudi 01/10": { start: 540, end: 1080, pause: 900 }, "Vendredi 02/10": { start: 540, end: 1080, pause: 900 }, "Samedi 03/10": { start: null, end: null, pause: null }, "Dimanche 04/10": { start: null, end: null, pause: null } } }
     ];
 
-    for(let i = 6; i <= 67; i++) {
+    for(let i = 21; i <= 67; i++) {
       const isChat = (i % 5 === 0);
       initialS40Agents.push({
         id: i,
@@ -624,6 +628,7 @@
       });
     }
 
+    // NAVIGATION SANS DEPENDANCE RESEAU
     function switchTab(tabName) {
       const pages = ['pagePresence', 'pageTel', 'pageChat', 'pageReporting', 'pageCouverture', 'pageAdmin'];
       const btns = ['tabNavPresence', 'tabNavTel', 'tabNavChat', 'tabNavReporting', 'tabNavCouverture', 'tabNavAdmin'];
@@ -663,7 +668,6 @@
         rawForecastData = weeksDatabase[weekCode].forecast || { "TEL BAQ": {}, "CHAT BAQ FR": {} };
       }
       updateUI();
-      fetchDataFromSupabase(weekCode);
     }
 
     function updateWeekDropdown() {
@@ -706,54 +710,9 @@
       return null;
     }
 
-    // CHARGEMENT SUPABASE VIA REST API DIRECT (SANS SDK BLOQUANT)
-    async function fetchDataFromSupabase(targetWeek = 'S40') {
-      const statusText = document.getElementById('statusText');
-      const statusDot = document.getElementById('statusDot');
-
-      try {
-        if (statusText) statusText.textContent = "Connexion Supabase...";
-
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2500);
-
-        const res = await fetch(`${SUPABASE_BASE_URL}/planning_agents?semaine=eq.${targetWeek}`, {
-          headers: getHeaders(),
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.length > 0) {
-            rawAgentsData = data.map((a, idx) => ({
-              id: a.id || idx + 1,
-              code: a.code_agent,
-              name: a.nom_prenom,
-              activity: a.activite,
-              schedules: a.schedules || {}
-            }));
-            if (!weeksDatabase[targetWeek]) weeksDatabase[targetWeek] = { agents: [], forecast: {} };
-            weeksDatabase[targetWeek].agents = rawAgentsData;
-
-            if (statusDot) statusDot.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
-            if (statusText) statusText.textContent = "Supabase Synchro (" + targetWeek + ")";
-            updateUI();
-            return;
-          }
-        }
-      } catch (err) {
-        console.warn("Connexion Supabase temporairement indisponible :", err);
-      }
-
-      if (statusDot) statusDot.className = "w-2 h-2 rounded-full bg-emerald-500";
-      if (statusText) statusText.textContent = "Données S40 Prêtes";
-      updateUI();
-    }
-
-    async function handleFile(file) {
+    function handleFile(file) {
       const reader = new FileReader();
-      reader.onload = async function (e) {
+      reader.onload = function (e) {
         try {
           const data = new Uint8Array(e.target.result);
           const workbook = XLSX.read(data, { type: 'array', cellDates: true });
@@ -777,38 +736,9 @@
           rawAgentsData = weeksDatabase[newWeekCode].agents;
           rawForecastData = weeksDatabase[newWeekCode].forecast;
 
-          // ENVOI VERS SUPABASE VIA REST
-          try {
-            const statusText = document.getElementById('statusText');
-            if (statusText) statusText.textContent = "Envoi Supabase...";
-
-            const payload = rawAgentsData.map(a => ({
-              semaine: newWeekCode,
-              code_agent: a.code,
-              nom_prenom: a.name,
-              activite: a.activity,
-              schedules: a.schedules
-            }));
-
-            await fetch(`${SUPABASE_BASE_URL}/planning_agents?semaine=eq.${newWeekCode}`, {
-              method: 'DELETE',
-              headers: getHeaders()
-            });
-
-            await fetch(`${SUPABASE_BASE_URL}/planning_agents`, {
-              method: 'POST',
-              headers: getHeaders(),
-              body: JSON.stringify(payload)
-            });
-
-            alert(`Succès ! ${rawAgentsData.length} agents enregistrés sur Supabase pour la Semaine ${newWeekCode}.`);
-          } catch (sErr) {
-            console.warn("Avertissement sauvegarde Supabase :", sErr);
-            alert(`Succès ! ${rawAgentsData.length} agents chargés en mémoire vive pour la Semaine ${newWeekCode}.`);
-          }
-
           updateWeekDropdown();
           updateUI();
+          alert(`Succès ! ${rawAgentsData.length} agents chargés pour la Semaine ${newWeekCode}.`);
         } catch (err) {
           console.error("Erreur d'importation :", err);
           alert("Erreur lors de la lecture du fichier Excel.");
@@ -1479,7 +1409,6 @@
     window.addEventListener('DOMContentLoaded', () => {
       updateWeekDropdown();
       updateUI();
-      fetchDataFromSupabase('S40');
     });
   </script>
 </body>
